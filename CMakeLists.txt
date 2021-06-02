@@ -36,6 +36,7 @@ set(FELIX_DEPENDENCIES
 ##############################################################################
 # Integration tests
 daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
+daq_add_application( toy-fromhost-dma-test toy-fromhost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
 
 ##############################################################################
 # Test configurations
