@@ -28,7 +28,7 @@ set(FELIX_DEPENDENCIES
 
 ##############################################################################
 # Main library
-# daq_add_library(DefaultParserImpl.cpp CardWrapper.cpp LINK_LIBRARIES appfwk::appfwk ${FELIX_DEPENDENCIES} ${DUNEDAQ_DEPENDENCIES})
+daq_add_library(LINK_LIBRARIES ${FELIX_DEPENDENCIES})
 
 ##############################################################################
 # Plugins
@@ -36,7 +36,8 @@ set(FELIX_DEPENDENCIES
 ##############################################################################
 # Integration tests
 daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
-daq_add_application( toy-fromhost-dma-test toy-fromhost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
+#daq_add_application( toy-fromhost-dma-test toy-fromhost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
+daq_add_application( fromhost-take2 fromhost-take2.cxx LINK_LIBRARIES wupper-toybox)
 
 ##############################################################################
 # Test configurations
