@@ -40,6 +40,7 @@ void display_help()
   printf("Initializes DMA transfers and the DMA memory on the screen in 1s intervals.\n\n");
   printf("Options:\n");
   printf("  -d NUMBER      Use card indicated by NUMBER. Default: 0.\n");
+  printf("  -D NUMBER      Use DMA ID by NUMBER. Default: 0.\n");
   printf("  -h             Display help.\n");
 }
 
