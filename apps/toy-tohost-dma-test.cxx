@@ -18,7 +18,7 @@
 
 #define APPLICATION_NAME    "flx-dma-test"
 #define BUFSIZE (1024)
-#define DMA_ID (0)
+//#define DMA_ID (0)
 
 #ifndef BF_GBT_EMU_ENA_TOHOST
 #define BF_GBT_EMU_ENA_TOHOST BF_FE_EMU_ENA_EMU_TOHOST
@@ -68,6 +68,7 @@ int main(int argc, char **argv)
   int i, loop, ret, device_number = 0, opt, handle, debuglevel;
   u_long baraddr0, vaddr, paddr, board_id, bsize, opt_emu_ena_to_host, opt_emu_ena_to_frontend;
   flxcard_bar0_regs_t *bar0;
+  int dma_id = 0;
 
   while((opt = getopt(argc, argv, "hd:D:V")) != -1)
   {
@@ -81,6 +82,9 @@ int main(int argc, char **argv)
         display_help();
         exit(0);
         break;
+      case 'D':
+        dma_id = atoi(optarg);
+	    	break;
 
       default:
         fprintf(stderr, "Usage: %s COMMAND [OPTIONS]\nTry %s -h for more information.\n", APPLICATION_NAME, APPLICATION_NAME);
@@ -135,7 +139,7 @@ int main(int argc, char **argv)
     printf("\nBuffer before DMA write:\n");
     dump_buffer(vaddr);
 
-    flxCard.dma_to_host(DMA_ID, paddr, BUFSIZE, FLX_DMA_WRAPAROUND);
+    flxCard.dma_to_host(dma_id, paddr, BUFSIZE, FLX_DMA_WRAPAROUND);
     //flxCard.dma_wait(DMA_ID);
 
     baraddr0 = flxCard.openBackDoor(0);
@@ -161,7 +165,7 @@ int main(int argc, char **argv)
     for(i = 0; ; i++)
     {
       printf("\n--------------------\n  %d:\n", i);
-      flxCard.dma_advance_ptr(DMA_ID, paddr, BUFSIZE, 512);
+      flxCard.dma_advance_ptr(dma_id, paddr, BUFSIZE, 512);
       //flxCard.dma_wait(DMA_ID);
 
       printf("Read Ptr:    0x%016lx\n", bar0->DMA_DESC[0].read_ptr);
