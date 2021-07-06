@@ -4,6 +4,8 @@ import ctypes
 import uhal
 import random
 
+uhal.setLogLevelTo(uhal.LogLevel.WARNING)
+
 ctypes.cdll.LoadLibrary('libwupper-toybox.so')
 
 cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusflx-2.0'])
@@ -17,16 +19,16 @@ reg = flx0.getNode('reg').read()
 flx0.dispatch()
 print(f'"reg" current value {hex(reg)}')
 
-print('Generating random number')
+print("Generating random number")
 x = random.getrandbits(32)
-print(f'New random value: {hex(x)}')
+print(f"New random value: {hex(x)}")
 
 
-print('Writing')
+print("Writing 'reg'")
 flx0.getNode('reg').write(x)
 flx0.dispatch()
 
-print('Reading back')
+print("Reading back 'reg'")
 reg = flx0.getNode('reg').read()
 flx0.dispatch()
-print(f'"reg" current value {hex(reg)}')
+print(f"'reg' current value {hex(reg)}")
