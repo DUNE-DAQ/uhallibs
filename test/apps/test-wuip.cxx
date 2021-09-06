@@ -47,6 +47,8 @@ int main(int argc, char const *argv[])
 
     uhal::HwInterface flx = cm.getDevice(vm["device"].as<std::string>());
 
+    flx.setTimeoutPeriod(1);
+
     flx.getNode("reg").write(0xbbbb);
     flx.dispatch();
     auto v = flx.getNode("reg").read();
