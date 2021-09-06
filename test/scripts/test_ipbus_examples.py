@@ -4,19 +4,19 @@ import ctypes
 import uhal
 import random
 
-uhal.setLogLevelTo(uhal.LogLevel.WARNING)
+uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
 
 ctypes.cdll.LoadLibrary('libwupper-toybox.so')
 
 cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusflx-2.0'])
 
-flx0 = cm.getDevice('flx-0-ipb')
+flx_dev = cm.getDevice('flx-2-ipb')
 
-for n in flx0.getNodes():
+for n in flx_dev.getNodes():
     print('- ', n)
 
-reg = flx0.getNode('reg').read()
-flx0.dispatch()
+reg = flx_dev.getNode('reg').read()
+flx_dev.dispatch()
 print(f'"reg" current value {hex(reg)}')
 
 print("Generating random number")
@@ -25,10 +25,10 @@ print(f"New random value: {hex(x)}")
 
 
 print("Writing 'reg'")
-flx0.getNode('reg').write(x)
-flx0.dispatch()
+flx_dev.getNode('reg').write(x)
+flx_dev.dispatch()
 
 print("Reading back 'reg'")
-reg = flx0.getNode('reg').read()
-flx0.dispatch()
+reg = flx_dev.getNode('reg').read()
+flx_dev.dispatch()
 print(f"'reg' current value {hex(reg)}")
