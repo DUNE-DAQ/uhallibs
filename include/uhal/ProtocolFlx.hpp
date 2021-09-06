@@ -120,11 +120,6 @@ namespace uhal
         FlxCard mFlxCard;
         bool mIsOpen;
 
-        u_long mWriteAddress;
-        u_long mWriteData;
-        u_long mReadAddress;
-        u_long mReadData;
-
       };
 
       template <typename T>

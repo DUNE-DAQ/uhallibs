@@ -133,16 +133,6 @@ Flx::File::File(const std::string& aPath, int aEndpoint, u_int aLockMask) :
   mFlxCard(),
   mIsOpen(false) {
 
-    // Can be made static
-    // mWriteAddress = find_reg("IPBUS_WRITE_ADDRESS")->address;
-    // mWriteData = find_reg("IPBUS_WRITE_DATA")->address;
-    // mReadAddress = find_reg("IPBUS_READ_ADDRESS")->address;
-    // mReadData = find_reg("IPBUS_READ_DATA")->address;
-    // mWriteAddress = 0xC800;
-    // mWriteData = 0xC810;
-    // mReadAddress = 0xC820;
-    // mReadData = 0xC830;
-
 }
 
 
@@ -196,9 +186,6 @@ void Flx::File::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<
   // uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
   flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
   
-  // uint64_t *lReadAddrPtr = (uint64_t *)(lBaseAddr + mReadAddress);
-  // uint64_t *lReadDataPtr = (uint64_t *)(lBaseAddr + mReadData);
-
   // +1 is ceiling rounding in integers
   uint32_t lNrReads64b = (aNrWords+1)/2;
   uint32_t lAddr = aAddr/2;
@@ -226,12 +213,7 @@ void Flx::File::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   if (!mIsOpen)
     open();
 
-  // uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
-  //AAA TODO: use regmap built-in addresses
   flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
-
-  // uint64_t *lWriteAddrPtr = (uint64_t *)(lBaseAddr + mWriteAddress);
-  // uint64_t *lWriteDataPtr = (uint64_t *)(lBaseAddr + mWriteData);
 
   size_t lNrBytes = 0;
   for (size_t i = 0; i < aData.size(); i++)
