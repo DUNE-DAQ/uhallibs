@@ -6,10 +6,12 @@ find_package(daq-cmake REQUIRED)
 daq_setup_environment()
 
 find_package(felix REQUIRED)
-find_package(Boost 1.73.0 COMPONENTS filesystem REQUIRED)
+find_package(uhal REQUIRED)
+find_package(Boost 1.73.0 COMPONENTS filesystem date_time REQUIRED)
 
 # daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
-set(LIST_OF_UHAL_LIBS $ENV{UHAL_LIB}/libcactus_uhal_log.so $ENV{UHAL_LIB}/libcactus_uhal_uhal.so) 
+#set(LIST_OF_UHAL_LIBS $ENV{UHAL_LIB}/libcactus_uhal_log.so $ENV{UHAL_LIB}/libcactus_uhal_uhal.so) 
+
 
 ##############################################################################
 # Dependency sets
@@ -30,8 +32,7 @@ set(FELIX_DEPENDENCIES
 
 ##############################################################################
 # Main library
-daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} ${LIST_OF_UHAL_LIBS})
-target_include_directories(${PROJECT_NAME} PUBLIC $ENV{UHAL_INC})
+daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} uhal::uhal Boost::date_time)
 
 ##############################################################################
 # Plugins
@@ -39,7 +40,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC $ENV{UHAL_INC})
 ##############################################################################
 # Integration tests
 daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
-daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES wupper-toybox ${LIST_OF_UHAL_LIBS} Boost::filesystem)
+daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
 
 ##############################################################################
 # Test configurations
