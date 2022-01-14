@@ -106,6 +106,29 @@ std::ostream& operator<<(std::ostream& aStream, const PCIe4::PacketFmt& aPacket)
   return aStream;
 }
 
+PCIe4::DMAFmt::DMAFmt(const uint8_t* const aPtr, const size_t aNrBytes) :
+  mData(1, std::pair<const uint8_t*, size_t>(aPtr, aNrBytes))
+{}
+
+PCIe4::DMAFmt::~DMAFmt()
+{}
+
+std::ostream& operator<<(std::ostream& aStream, const PCIe4::DMAFmt& aPacket)
+{
+  std::ios::fmtflags lOrigFlags( aStream.flags() );
+
+  size_t lNrBytesWritten = 0;
+  for (size_t i = 0; i < aPacket.mData.size(); i++) {
+    for (const uint8_t* lPtr = aPacket.mData.at(i).first; lPtr != (aPacket.mData.at(i).first + aPacket.mData.at(i).second); lPtr++, lNrBytesWritten++) {
+      if ((lNrBytesWritten & 63) == 0)
+        aStream << std::endl << "   @ " << std::setw(3) << std::dec << (lNrBytesWritten >> 2) << " :  x";
+      aStream << std::setw(2) << std::hex << uint16_t(*lPtr) << " ";
+    }
+  }
+
+  aStream.flags( lOrigFlags );
+  return aStream;
+}
 
 
 
@@ -224,6 +247,8 @@ void PCIe4::File::read(const uint32_t aAddr, const uint32_t aNrWords, std::vecto
     throw lExc;
   }
 
+  log (Debug(), "Reading " , Integer(4*lNrWordsBuffer), " 8-bit words at address " , Integer(4*lAddrBuffer), " ... ", DMAFmt((const uint8_t* const)mBuffer, 4*lNrWordsBuffer));
+
   // Pick the wbitsords corresponding to the first 2 32b words each 512b
   auto lBuffer32 = reinterpret_cast<uint32_t*>(mBuffer);
   for( size_t i(0); i<aNrWords; ++i) {
@@ -273,6 +298,8 @@ void PCIe4::File::write(const uint32_t aAddr, const uint8_t* const aPtr, const s
     }
   }
 
+  log (Debug(), "Writing " , Integer(lNrBytesBuffer), " 8-bit words at address " , Integer(4*lAddrBuffer), " ... ", DMAFmt((const uint8_t* const)mBuffer, lNrBytesBuffer));
+
   /* write buffer to AXI MM address using SGDMA */
   int rc = ::write(mFd, mBuffer, lNrBytesBuffer);
   if (rc == -1) {
@@ -300,14 +327,14 @@ void PCIe4::File::write(const uint32_t aAddr, const std::vector<std::pair<const 
   assert((lNrBytes % 4) == 0);
 
   uint32_t lNrWordsData = lNrBytes/4;
-  uint32_t lNrWordsBuffer = (lNrWordsData/2)*16 + lNrWordsData%2;
+  uint32_t lNrWordsBuffer = (lNrWordsData/2 + lNrWordsData%2)*16;
   uint32_t lNrBytesBuffer = lNrWordsBuffer*4;
   createBuffer(4 * lNrWordsBuffer);
 
   // data to write to register address
   size_t lOffset = 0;
   for (size_t i = 0; i < aData.size(); ++i) {
-    for (size_t j = 0; j < aData.at(i).second; ++i) {
+    for (size_t j = 0; j < aData.at(i).second; ++j) {
       mBuffer[lOffset] = aData.at(i).first[j];
       ++lOffset;
       // Jump ahead to the next 512b offset (64 bytes)
@@ -315,11 +342,10 @@ void PCIe4::File::write(const uint32_t aAddr, const std::vector<std::pair<const 
       // |wwwwwwwwxxxxxxxxxxxxxx...
 
       if ( lOffset%64 == 8) {
-        lOffset += 64;
+        lOffset += 56;
       }
     }
   }
-  // uint32_t lNrBytesBuffer = lOffset;
 
   /* select AXI MM address */
   uint32_t lAddrBuffer = (aAddr/2)*16 + aAddr%2;
@@ -332,6 +358,8 @@ void PCIe4::File::write(const uint32_t aAddr, const std::vector<std::pair<const 
       throw lExc;
     }
   }
+
+  log (Debug(), "Writing " , Integer(lNrBytesBuffer), " 8-bit words at address " , Integer(4*lAddrBuffer), " ... ", DMAFmt((const uint8_t* const)mBuffer, lNrBytesBuffer));
 
   /* write buffer to AXI MM address using SGDMA */
   int rc = ::write(mFd, mBuffer, lNrBytesBuffer);
