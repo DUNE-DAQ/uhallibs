@@ -18,9 +18,9 @@ ctypes.cdll.LoadLibrary('libwupper-toybox.so')
 
 hook_debugger()
 
-cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbuspcie4-2.0', 'ipbusflx-2.0'])
+cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusaxi4lite-2.0', 'ipbusflx-2.0'])
 
-u50 = cm.getDevice('u50-ipb')
+u50 = cm.getDevice('u50-ipb-axi4l')
 
 for n in u50.getNodes():
     print('- ', n)

@@ -18,199 +18,6 @@
 
 #include "uhal/ProtocolAxi4Lite.hpp"
 
-// namespace uhal {
-
-// namespace exception {
-
-// UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-//     Axi4LiteCommunicationError, TransportLayerError,
-//     "Exception class to handle a low-level seek/read/write error after "
-//     "initialisation.")
-// UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-//     MutexError, TransportLayerError,
-//     "Exception class to handle errors from pthread mutex-related functions.")
-
-// }  // namespace exception
-
-// class File {
-//  public:
-//   File(const std::string& aPath, size_t aLength, int aProtFlags);
-//   ~File();
-
-//   const std::string& getPath() const;
-//   void setPath(const std::string& aPath);
-
-//   void open();
-//   void close();
-
-//   void createBuffer(const size_t aNrBytes);
-
-//   void read(const uint32_t aAddr, const uint32_t aNrWords,
-//             std::vector<uint32_t>& aValues);
-
-//   void write(const uint32_t aAddr, const std::vector<uint32_t>& aValues);
-
-//   void write(const uint32_t aAddr, const uint8_t* const aPtr,
-//              const size_t aNrBytes);
-
-//   void write(const uint32_t aAddr,
-//              const std::vector<std::pair<const uint8_t*, size_t> >& aData);
-
-//   bool haveLock() const;
-
-//   void lock();
-
-//   void unlock();
-
-//  private:
-//   std::string mPath;
-//   int mFd;
-//   uint32_t* mBar;
-//   size_t mLength;
-//   int mProtFlags;
-//   bool mLocked;
-//   size_t mBufferSize;
-//   char* mBuffer;
-// };
-
-// File::File(const std::string& aPath, size_t aLength, int aProtFlags)
-//     : mPath(aPath),
-//       mFd(-1),
-//       mBar(nullptr),
-//       mLength(aLength),
-//       mProtFlags(aProtFlags),
-//       mLocked(false),
-//       mBufferSize(0),
-//       mBuffer(nullptr) {}
-
-// File::~File() {
-//   if (mBuffer != nullptr) free(mBuffer);
-//   close();
-// }
-
-// const std::string& File::getPath() const { return mPath; }
-
-// void File::setPath(const std::string& aPath) { mPath = aPath; }
-
-// void File::open() {
-//   if (mBar != nullptr) return;
-
-//   mFd = ::open(mPath.c_str(), (mProtFlags & PROT_WRITE) ? O_RDWR : O_RDONLY);
-//   if (mFd < 0) {
-//     return;
-//   }
-
-//   void* lBar = mmap(nullptr, mLength, mProtFlags, MAP_SHARED, mFd, 0);
-//   mBar = (lBar == MAP_FAILED ? nullptr : (uint32_t*)lBar);
-// }
-
-// void File::close() {
-//   if (mBar != nullptr) munmap(mBar, mLength);
-
-//   if (mFd != -1) ::close(mFd);
-// }
-
-// void File::createBuffer(const size_t aNrBytes) {
-//   if (mBuffer != NULL) {
-//     if (mBufferSize >= aNrBytes)
-//       return;
-//     else {
-//       free(mBuffer);
-//       mBuffer = NULL;
-//       mBufferSize = 0;
-//     }
-//   }
-
-//   posix_memalign((void**)&mBuffer, 4096 /*alignment*/, aNrBytes + 4096);
-//   if (mBuffer == NULL) {
-//     exception::Axi4LiteCommunicationError lExc;
-//     log(lExc, "Failed to allocate ", Integer(aNrBytes + 4096),
-//         " bytes in File::createBuffer");
-//     throw lExc;
-//   }
-
-//   mBufferSize = aNrBytes + 4096;
-// }
-
-// void File::read(const uint32_t aAddr, const uint32_t aNrWords,
-//                 std::vector<uint32_t>& aValues) {
-//   if (mBar == nullptr) open();
-
-//   for (size_t i(0); i < aNrWords; ++i) {
-//     aValues.push_back(le32toh(mBar[aAddr + i]));
-//   }
-// }
-
-// void File::write(const uint32_t aAddr, const std::vector<uint32_t>& aValues) {
-//   write(aAddr, reinterpret_cast<const uint8_t*>(aValues.data()),
-//         4 * aValues.size());
-// }
-
-// void File::write(const uint32_t aAddr, const uint8_t* const aPtr,
-//                  const size_t aNrBytes) {
-//   if (mBar == nullptr) open();
-
-//   assert((aNrBytes % 4) == 0);
-//   uint32_t lNrWordsData = aNrBytes / 4;
-
-//   auto lPtr32 = reinterpret_cast<const uint32_t*>(aPtr);
-//   for (size_t i(0); i < lNrWordsData; ++i) {
-//     mBar[aAddr + i] = lPtr32[i];
-//   }
-// }
-
-// void File::write(const uint32_t aAddr,
-//                  const std::vector<std::pair<const uint8_t*, size_t> >& aData) {
-//   if (mBar == nullptr) open();
-
-//   size_t lNrBytes = 0;
-//   for (size_t i = 0; i < aData.size(); i++) lNrBytes += aData.at(i).second;
-
-//   assert((lNrBytes % 4) == 0);
-//   size_t lNrWords = lNrBytes/4;
-
-//   createBuffer(lNrBytes);
-
-//   size_t k(0);
-//   for (size_t i = 0; i < aData.size(); ++i) {
-//     for (size_t j = 0; j < aData.at(i).second; ++j) {
-//       mBuffer[k] = aData.at(i).first[j];
-//       ++k;
-//     }
-//   }
-
-//   auto mBuffer32b = reinterpret_cast<const uint32_t*>(mBuffer);
-
-//   for (size_t i(0); i<lNrWords; ++i) {
-//     mBar[aAddr + i] = htole32(mBuffer32b[i]);
-//   }
-//   // std::memcpy(mBar + aAddr, mBuffer, lNrBytes);
-
-// }
-
-// bool File::haveLock() const { return mLocked; }
-
-// void File::lock() {
-//   if (flock(mFd, LOCK_EX) == -1) {
-//     exception::MutexError lExc;
-//     log(lExc, "Failed to lock device file ", Quote(mPath),
-//         "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
-//     throw lExc;
-//   }
-//   mLocked = true;
-// }
-
-// void File::unlock() {
-//   if (flock(mFd, LOCK_UN) == -1) {
-//     log(Warning(), "Failed to unlock device file ", Quote(mPath),
-//         "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
-//   } else
-//     mLocked = false;
-// }
-
-// }  // namespace uhal
-
-
 int main(int argc, char const* argv[]) {
   /* code */
 
@@ -222,7 +29,7 @@ int main(int argc, char const* argv[]) {
   uint32_t read_counts;
 
   std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource2";
-  uhal::Axi4Lite::MappedFile f(lBarFile, 0x10000, PROT_WRITE);
+  uhal::Axi4Lite::MappedFile f(lBarFile, 0x40, PROT_WRITE);
 
   std::vector<uint32_t> lStats;
   f.open();
@@ -249,7 +56,13 @@ int main(int argc, char const* argv[]) {
   std::cout << "next_write_index " << next_write_index << std::endl;
   std::cout << "read_counts " << read_counts << std::endl;
   std::cout << "-------------" << std::endl;
+  f.unlock();
+  f.close();
 
+  uint32_t map_size = n_pages*page_size+4;
+  f.setLength(map_size);
+  f.open();
+  f.lock();
 
   uint64_t write_base = next_write_index * page_size;
   std::cout << "write base : 0x" << std::hex << std::setw(8)
