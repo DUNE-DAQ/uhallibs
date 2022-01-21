@@ -20,7 +20,7 @@ hook_debugger()
 
 cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusaxi4lite-2.0', 'ipbusflx-2.0'])
 
-u50 = cm.getDevice('u50-ipb-axi4l')
+u50 = cm.getDevice('u50-axi4lite')
 
 for n in u50.getNodes():
     print('- ', n)
