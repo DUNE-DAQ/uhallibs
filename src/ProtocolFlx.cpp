@@ -66,50 +66,14 @@
 #include "uhal/Buffers.hpp"
 #include "uhal/ClientFactory.hpp"
 
-#include "regmap/regmap-struct.h"
+#include "uhal/formatters.hpp"
 
+#include "regmap/regmap-struct.h"
 
 UHAL_REGISTER_EXTERNAL_CLIENT(uhal::Flx, "ipbusflx-2.0", "A client description")
 
 
 namespace uhal {
-
-
-//-----------------------------------------------------------------------------
-Flx::PacketFmt::PacketFmt(const uint8_t* const aPtr, const size_t aNrBytes) :
-  mData(1, std::pair<const uint8_t*, size_t>(aPtr, aNrBytes))
-{
-}
-
-
-//-----------------------------------------------------------------------------
-Flx::PacketFmt::PacketFmt(const std::vector< std::pair<const uint8_t*, size_t> >& aData) :
-  mData(aData)
-{}
-
-
-//-----------------------------------------------------------------------------
-Flx::PacketFmt::~PacketFmt()
-{}
-
-
-//-----------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream& aStream, const Flx::PacketFmt& aPacket)
-{
-  std::ios::fmtflags lOrigFlags( aStream.flags() );
-
-  size_t lNrBytesWritten = 0;
-  for (size_t i = 0; i < aPacket.mData.size(); i++) {
-    for (const uint8_t* lPtr = aPacket.mData.at(i).first; lPtr != (aPacket.mData.at(i).first + aPacket.mData.at(i).second); lPtr++, lNrBytesWritten++) {
-      if ((lNrBytesWritten & 3) == 0)
-        aStream << std::endl << "   @ " << std::setw(3) << std::dec << (lNrBytesWritten >> 2) << " :  x";
-      aStream << std::setw(2) << std::hex << uint16_t(*lPtr) << " ";
-    }
-  }
-
-  aStream.flags( lOrigFlags );
-  return aStream;
-}
 
 
 //-----------------------------------------------------------------------------
@@ -138,10 +102,10 @@ Flx::Card::Card(const std::string& aPath, int aEndpoint, u_int aLockMask) :
     // mWriteData = find_reg("IPBUS_WRITE_DATA")->address;
     // mReadAddress = find_reg("IPBUS_READ_ADDRESS")->address;
     // mReadData = find_reg("IPBUS_READ_DATA")->address;
-    mWriteAddress = 0xC800;
-    mWriteData = 0xC810;
-    mReadAddress = 0xC820;
-    mReadData = 0xC830;
+    // mWriteAddress = 0xC800;
+    // mWriteData = 0xC810;
+    // mReadAddress = 0xC820;
+    // mReadData = 0xC830;
 
 }
 
@@ -193,21 +157,21 @@ void Flx::Card::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<
   if (!mIsOpen)
     open();
 
-  uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
-  //AAA flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
+  // BBB uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
+  flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
   
-  uint64_t *lReadAddrPtr = (uint64_t *)(lBaseAddr + mReadAddress);
-  uint64_t *lReadDataPtr = (uint64_t *)(lBaseAddr + mReadData);
+  //BBB uint64_t *lReadAddrPtr = (uint64_t *)(lBaseAddr + mReadAddress);
+  //BBB uint64_t *lReadDataPtr = (uint64_t *)(lBaseAddr + mReadData);
 
   // +1 is ceiling rounding in integers
   uint32_t lNrReads64b = (aNrWords+1)/2;
   uint32_t lAddr = aAddr/2;
 
   for ( uint32_t i(0); i<lNrReads64b; i++) {
-      *lReadAddrPtr = lAddr+i;
-      // AAA bar2->IPBUS_READ_ADDRESS = lAddr+i;
-      uint64_t lDataWord = *lReadDataPtr;
-      // AAA uint64_t lDataWord = bar2->IPBUS_READ_DATA;
+      // *lReadAddrPtr = lAddr+i;
+      bar2->IPBUS_READ_ADDRESS = lAddr+i;
+      // uint64_t lDataWord = *lReadDataPtr;
+      uint64_t lDataWord = bar2->IPBUS_READ_DATA;
       // Split the 64b word in 32b chunks
       aValues.push_back(lDataWord & 0xffffffff);
       if ( 2*i+1 < aNrWords ) 
@@ -226,12 +190,12 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   if (!mIsOpen)
     open();
 
-  uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
+  // uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
   //AAA TODO: use regmap built-in addresses
-  //AAA flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
+  flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
 
-  uint64_t *lWriteAddrPtr = (uint64_t *)(lBaseAddr + mWriteAddress);
-  uint64_t *lWriteDataPtr = (uint64_t *)(lBaseAddr + mWriteData);
+  // BBB uint64_t *lWriteAddrPtr = (uint64_t *)(lBaseAddr + mWriteAddress);
+  // BBB uint64_t *lWriteDataPtr = (uint64_t *)(lBaseAddr + mWriteData);
 
   size_t lNrBytes = 0;
   for (size_t i = 0; i < aData.size(); i++)
@@ -260,17 +224,17 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   uint32_t lAddr = aAddr/2;
 
   while (lNrBytesCopied < lNrBytes) {
-    *lWriteAddrPtr = lAddr;
-    //AAA bar2->IPBUS_WRITE_ADDRESS = lAddr;
+    // *lWriteAddrPtr = lAddr;
+    bar2->IPBUS_WRITE_ADDRESS = lAddr;
     char* lSrcPtr = buffer + lNrBytesCopied;
     if ((lNrBytes - lNrBytesCopied) >= 8) {
-      *lWriteDataPtr = *(uint64_t*) lSrcPtr;
-      //AAA bar2->IPBUS_WRITE_DATA.DATA = *(uint64_t*) lSrcPtr;
+      // *lWriteDataPtr = *(uint64_t*) lSrcPtr;
+      bar2->IPBUS_WRITE_DATA.DATA = *(uint64_t*) lSrcPtr;
       lNrBytesCopied += 8;
     }
     else if ((lNrBytes - lNrBytesCopied) >= 4) {
-      *lWriteDataPtr = uint64_t(*(uint32_t*) lSrcPtr);
-      //AAA bar2->IPBUS_WRITE_DATA.DATA = uint64_t(*(uint32_t*) lSrcPtr);
+      // *lWriteDataPtr = uint64_t(*(uint32_t*) lSrcPtr);
+      bar2->IPBUS_WRITE_DATA.DATA = uint64_t(*(uint32_t*) lSrcPtr);
       lNrBytesCopied += 4;
     }
 

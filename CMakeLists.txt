@@ -33,6 +33,7 @@ set(FELIX_DEPENDENCIES
 ##############################################################################
 # Main library
 daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} uhal::uhal Boost::date_time)
+target_compile_definitions(wupper-toybox PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################
 # Plugins
