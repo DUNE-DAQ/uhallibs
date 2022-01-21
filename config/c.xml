@@ -2,7 +2,6 @@
 
 <connections>
     <connection id="flx-0-ipb" uri="ipbusflx-2.0:///dev/flx:0" address_table="file://${WUPPER_TOYBOX_SHARE}/config//addrtabs/ipbus_example.xml" />
-    <connection id="u50-ipb" uri="ipbuspcie4-2.0:///dev/qdma41000-MM-100,/dev/qdma41000-MM-101" address_table="file://${WUPPER_TOYBOX_SHARE}/config//addrtabs/ipbus_example.xml" />
     <connection id="u50-ipb-axi4l" uri="ipbusaxi4lite-2.0:///sys/bus/pci/devices?dev=0000:41:00.0/resource2" address_table="file://${WUPPER_TOYBOX_SHARE}/config//addrtabs/ipbus_example.xml" />
 </connections>
     
