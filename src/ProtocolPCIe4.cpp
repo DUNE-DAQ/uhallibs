@@ -69,8 +69,9 @@
 #include "uhal/Buffers.hpp"
 #include "uhal/ClientFactory.hpp"
 
-UHAL_REGISTER_EXTERNAL_CLIENT(uhal::PCIe4, "ipbuspcie4-2.0", "A client description")
-
+UHAL_REGISTER_EXTERNAL_CLIENT(uhal::PCIe4, "ipbus-qdma-axi4l-2.0", "QDMA AXI4 Lite IPBus client")
+// Syntax: ipbus-qdma-axi4l-2.0:///sys/bus/pci/devices/0000:<bus>:<dev>.<func>/resource<bar#>
+// Syntax: ipbus-qdma-axi4l-2.0://<bus>:<dev>.<func>/resource<bar#>
 
 namespace uhal {
 

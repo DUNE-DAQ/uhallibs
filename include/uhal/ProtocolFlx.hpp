@@ -93,10 +93,10 @@ namespace uhal
       };
 
     private:
-      class File {
+      class Card {
       public:
-        File(const std::string& aPath, int aEndpoint, u_int aLockMask);
-        ~File();
+        Card(const std::string& aPath, int aEndpoint, u_int aLockMask);
+        ~Card();
 
         const std::string& getPath() const;
         int getEndpoint() const;
@@ -200,7 +200,7 @@ namespace uhal
 
       bool mConnected;
 
-      File mDeviceFile;
+      Card mDeviceFile;
 
       std::chrono::microseconds mSleepDuration;
 

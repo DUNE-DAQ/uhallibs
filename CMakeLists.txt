@@ -43,6 +43,7 @@ daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES 
 daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
 daq_add_application( test-pcie4 test-pcie4.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
 daq_add_application( test-pcie-axil test-pcie-axil.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
+daq_add_application( test-axi4l-if test-axi4l-if.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
 
 ##############################################################################
 # Test configurations

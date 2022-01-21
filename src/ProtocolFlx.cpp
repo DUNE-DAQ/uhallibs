@@ -113,7 +113,7 @@ std::ostream& operator<<(std::ostream& aStream, const Flx::PacketFmt& aPacket)
 
 
 //-----------------------------------------------------------------------------
-regmap_register_t* Flx::File::find_reg( const std::string& aName ) {
+regmap_register_t* Flx::Card::find_reg( const std::string& aName ) {
 
   regmap_register_t *reg;
   for (reg = regmap_registers; reg->name != NULL; reg++) {
@@ -126,7 +126,7 @@ regmap_register_t* Flx::File::find_reg( const std::string& aName ) {
 }
 
 //-----------------------------------------------------------------------------
-Flx::File::File(const std::string& aPath, int aEndpoint, u_int aLockMask) :
+Flx::Card::Card(const std::string& aPath, int aEndpoint, u_int aLockMask) :
   mPath(aPath),
   mEndpoint(aEndpoint),
   mLockMask(aLockMask),
@@ -147,14 +147,14 @@ Flx::File::File(const std::string& aPath, int aEndpoint, u_int aLockMask) :
 
 
 //-----------------------------------------------------------------------------
-Flx::File::~File() {
+Flx::Card::~Card() {
 }
 
 
 //-----------------------------------------------------------------------------
-void Flx::File::open() {
+void Flx::Card::open() {
   
-  log(Debug(), "Flx::File client Opening felix endpoint ", mEndpoint, " on ", mPath);
+  log(Debug(), "Flx::Card client Opening felix endpoint ", mEndpoint, " on ", mPath);
 
   if( access( mPath.c_str(), F_OK ) == -1 ) {
 
@@ -170,7 +170,7 @@ void Flx::File::open() {
 
 
 //-----------------------------------------------------------------------------
-void Flx::File::close() {
+void Flx::Card::close() {
 
   if (mIsOpen)
     mFlxCard.card_close();
@@ -178,17 +178,17 @@ void Flx::File::close() {
 
 
 //-----------------------------------------------------------------------------
-const std::string& Flx::File::getPath() const {
+const std::string& Flx::Card::getPath() const {
   return mPath;
 }
 
 //-----------------------------------------------------------------------------
-int Flx::File::getEndpoint() const {
+int Flx::Card::getEndpoint() const {
   return mEndpoint;
 }
 
 //-----------------------------------------------------------------------------
-void Flx::File::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<uint32_t>& aValues) {
+void Flx::Card::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<uint32_t>& aValues) {
 
   if (!mIsOpen)
     open();
@@ -214,13 +214,13 @@ void Flx::File::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<
         aValues.push_back(lDataWord >> 32);
   }
 
-  log(Debug(), "Flx::File::read, ", aNrWords, " requested, ", aValues.size(), " read");
+  log(Debug(), "Flx::Card::read, ", aNrWords, " requested, ", aValues.size(), " read");
 
 }
 
 
 //-----------------------------------------------------------------------------
-void Flx::File::write(const uint32_t aAddr, const std::vector<std::pair<const uint8_t*, size_t> >& aData)
+void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const uint8_t*, size_t> >& aData)
 {
 
   if (!mIsOpen)
