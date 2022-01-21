@@ -1,4 +1,7 @@
 
+#ifndef _uhal_ipc_RobustMutex_hpp_
+#define _uhal_ipc_RobustMutex_hpp_
+
 #include <cstdint>
 
 #include "uhal/ClientInterface.hpp"
@@ -41,3 +44,5 @@ class RobustMutex {
 
 }  // namespace ipc
 }  // namespace uhal
+
+#endif /* _uhal_ipc_RobustMutex_hpp_ */

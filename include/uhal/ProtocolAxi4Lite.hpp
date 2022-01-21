@@ -42,54 +42,114 @@
 #ifndef _uhal_ProtocolAxi4Lite_hpp_
 #define _uhal_ProtocolAxi4Lite_hpp_
 
+#include <stddef.h>  // for size_t
+#include <stdint.h>  // for uint32_t, uint8_t
 
 #include <chrono>
-#include <deque>                           // for deque
+#include <deque>  // for deque
 #include <memory>
 #include <mutex>
-#include <stddef.h>                        // for size_t
-#include <stdint.h>                        // for uint32_t, uint8_t
-#include <string>                          // for string
-#include <utility>                         // for pair
-#include <vector>                          // for vector
-
+#include <string>   // for string
+#include <utility>  // for pair
+#include <vector>   // for vector
 
 #include "uhal/ClientInterface.hpp"
-#include "uhal/log/exception.hpp"
 #include "uhal/ProtocolIPbus.hpp"
-
-#include "uhal/ipc/RobustMutex.hpp"
-#include "uhal/ipc/SharedObject.hpp"
 #include "uhal/formatters.hpp"
+#include "uhal/ipc/RobustMutex.hpp"
+#include "uhal/ipc/SharedMemObject.hpp"
+#include "uhal/log/exception.hpp"
 
-namespace uhal
-{
-  class Buffers;
-  struct URI;
+namespace uhal {
+class Buffers;
+struct URI;
 
-  namespace exception
-  {
-    //! Exception class to handle the case in which the Axi4Lite connection timed out.
-    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS ( Axi4LiteTimeout , ClientTimeout , "Exception class to handle the case in which the Axi4Lite connection timed out." )
-    //! Exception class to handle a failure to read from the specified device files during initialisation
-    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS ( Axi4LiteInitialisationError , TransportLayerError , "Exception class to handle a failure to read from the specified device files during initialisation." )
-    //! Exception class to handle a low-level seek/read/write error after initialisation
-    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS ( Axi4LiteCommunicationError , TransportLayerError , "Exception class to handle a low-level seek/read/write error after initialisation." )
-  }
+namespace exception {
+//! Exception class to handle the case in which the Axi4Lite connection timed
+//! out.
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(Axi4LiteTimeout, ClientTimeout,
+                                    "Exception class to handle the case in "
+                                    "which the Axi4Lite connection timed out.")
+//! Exception class to handle a failure to read from the specified device files
+//! during initialisation
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+    Axi4LiteInitialisationError, TransportLayerError,
+    "Exception class to handle a failure to read from the specified device "
+    "files during initialisation.")
+//! Exception class to handle a low-level seek/read/write error after
+//! initialisation
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+    Axi4LiteCommunicationError, TransportLayerError,
+    "Exception class to handle a low-level seek/read/write error after "
+    "initialisation.")
+}  // namespace exception
 
-  //! Transport protocol to transfer an IPbus buffer over Axi4Lite
-  class PCIeAxi4Lite : public IPbus< 2 , 0 >
-  {
+//! Transport protocol to transfer an IPbus buffer over Axi4Lite
+class Axi4Lite : public IPbus<2, 0> {
+ public:
+  class MappedFile {
+   public:
+    MappedFile(const std::string& aPath, size_t aLength, int aProtFlags);
+    ~MappedFile();
 
-  private:
-    typedef ipc::RobustMutex IPCMutex_t;
-    typedef std::unique_lock<IPCMutex_t> IPCScopedLock_t;
+    const std::string& getPath() const;
+    void setPath(const std::string& aPath);
 
-    ipc::SharedObject<IPCMutex_t> mIPCMutex;
-    bool mIPCExternalSessionActive;
-    uint64_t mIPCSessionCount;
+    void open();
+    void close();
+
+    void createBuffer(const size_t aNrBytes);
+
+    void read(const uint32_t aAddr, const uint32_t aNrWords,
+              std::vector<uint32_t>& aValues);
+
+    void write(const uint32_t aAddr, const std::vector<uint32_t>& aValues);
+
+    void write(const uint32_t aAddr, const uint8_t* const aPtr,
+               const size_t aNrBytes);
+
+    void write(const uint32_t aAddr,
+               const std::vector<std::pair<const uint8_t*, size_t> >& aData);
+
+    bool haveLock() const;
+
+    void lock();
+
+    void unlock();
+
+   private:
+    std::string mPath;
+    int mFd;
+    uint32_t* mBar;
+    size_t mLength;
+    int mProtFlags;
+    bool mLocked;
+    size_t mBufferSize;
+    char* mBuffer;
   };
+  /**
+    Constructor
+    @param aId the uinique identifier that the client will be given.
+    @param aUri a struct containing the full URI of the target.
+  */
+  Axi4Lite(const std::string& aId, const URI& aUri);
 
-} // namespace uhal
+  //! Destructor
+  virtual ~Axi4Lite();
+
+ private:
+  typedef ipc::RobustMutex IPCMutex_t;
+  typedef std::unique_lock<IPCMutex_t> IPCScopedLock_t;
+
+  bool mConnected;
+
+  // MappedFile mMapped;
+
+  // ipc::SharedMemObject<IPCMutex_t> mIPCMutex;
+  // bool mIPCExternalSessionActive;
+  // uint64_t mIPCSessionCount;
+};
+
+}  // namespace uhal
 
 #endif /* _uhal_ProtocolAxi4Lite_hpp_ */

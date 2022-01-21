@@ -15,197 +15,200 @@
 #include "uhal/log/exception.hpp"
 #include "uhal/log/log.hpp"
 
-namespace uhal {
 
-namespace exception {
+#include "uhal/ProtocolAxi4Lite.hpp"
 
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    PCIe4CommunicationError, TransportLayerError,
-    "Exception class to handle a low-level seek/read/write error after "
-    "initialisation.")
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    MutexError, TransportLayerError,
-    "Exception class to handle errors from pthread mutex-related functions.")
+// namespace uhal {
 
-}  // namespace exception
+// namespace exception {
 
-class File {
- public:
-  File(const std::string& aPath, size_t aLength, int aProtFlags);
-  ~File();
+// UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+//     Axi4LiteCommunicationError, TransportLayerError,
+//     "Exception class to handle a low-level seek/read/write error after "
+//     "initialisation.")
+// UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+//     MutexError, TransportLayerError,
+//     "Exception class to handle errors from pthread mutex-related functions.")
 
-  const std::string& getPath() const;
-  void setPath(const std::string& aPath);
+// }  // namespace exception
 
-  void open();
-  void close();
+// class File {
+//  public:
+//   File(const std::string& aPath, size_t aLength, int aProtFlags);
+//   ~File();
 
-  void createBuffer(const size_t aNrBytes);
+//   const std::string& getPath() const;
+//   void setPath(const std::string& aPath);
 
-  void read(const uint32_t aAddr, const uint32_t aNrWords,
-            std::vector<uint32_t>& aValues);
+//   void open();
+//   void close();
 
-  void write(const uint32_t aAddr, const std::vector<uint32_t>& aValues);
+//   void createBuffer(const size_t aNrBytes);
 
-  void write(const uint32_t aAddr, const uint8_t* const aPtr,
-             const size_t aNrBytes);
+//   void read(const uint32_t aAddr, const uint32_t aNrWords,
+//             std::vector<uint32_t>& aValues);
 
-  void write(const uint32_t aAddr,
-             const std::vector<std::pair<const uint8_t*, size_t> >& aData);
+//   void write(const uint32_t aAddr, const std::vector<uint32_t>& aValues);
 
-  bool haveLock() const;
+//   void write(const uint32_t aAddr, const uint8_t* const aPtr,
+//              const size_t aNrBytes);
 
-  void lock();
+//   void write(const uint32_t aAddr,
+//              const std::vector<std::pair<const uint8_t*, size_t> >& aData);
 
-  void unlock();
+//   bool haveLock() const;
 
- private:
-  std::string mPath;
-  int mFd;
-  uint32_t* mBar;
-  size_t mLength;
-  int mProtFlags;
-  bool mLocked;
-  size_t mBufferSize;
-  char* mBuffer;
-};
+//   void lock();
 
-File::File(const std::string& aPath, size_t aLength, int aProtFlags)
-    : mPath(aPath),
-      mFd(-1),
-      mBar(nullptr),
-      mLength(aLength),
-      mProtFlags(aProtFlags),
-      mLocked(false),
-      mBufferSize(0),
-      mBuffer(nullptr) {}
+//   void unlock();
 
-File::~File() {
-  if (mBuffer != nullptr) free(mBuffer);
-  close();
-}
+//  private:
+//   std::string mPath;
+//   int mFd;
+//   uint32_t* mBar;
+//   size_t mLength;
+//   int mProtFlags;
+//   bool mLocked;
+//   size_t mBufferSize;
+//   char* mBuffer;
+// };
 
-const std::string& File::getPath() const { return mPath; }
+// File::File(const std::string& aPath, size_t aLength, int aProtFlags)
+//     : mPath(aPath),
+//       mFd(-1),
+//       mBar(nullptr),
+//       mLength(aLength),
+//       mProtFlags(aProtFlags),
+//       mLocked(false),
+//       mBufferSize(0),
+//       mBuffer(nullptr) {}
 
-void File::setPath(const std::string& aPath) { mPath = aPath; }
+// File::~File() {
+//   if (mBuffer != nullptr) free(mBuffer);
+//   close();
+// }
 
-void File::open() {
-  if (mBar != nullptr) return;
+// const std::string& File::getPath() const { return mPath; }
 
-  mFd = ::open(mPath.c_str(), (mProtFlags & PROT_WRITE) ? O_RDWR : O_RDONLY);
-  if (mFd < 0) {
-    return;
-  }
+// void File::setPath(const std::string& aPath) { mPath = aPath; }
 
-  void* lBar = mmap(nullptr, mLength, mProtFlags, MAP_SHARED, mFd, 0);
-  mBar = (lBar == MAP_FAILED ? nullptr : (uint32_t*)lBar);
-}
+// void File::open() {
+//   if (mBar != nullptr) return;
 
-void File::close() {
-  if (mBar != nullptr) munmap(mBar, mLength);
+//   mFd = ::open(mPath.c_str(), (mProtFlags & PROT_WRITE) ? O_RDWR : O_RDONLY);
+//   if (mFd < 0) {
+//     return;
+//   }
 
-  if (mFd != -1) ::close(mFd);
-}
+//   void* lBar = mmap(nullptr, mLength, mProtFlags, MAP_SHARED, mFd, 0);
+//   mBar = (lBar == MAP_FAILED ? nullptr : (uint32_t*)lBar);
+// }
 
-void File::createBuffer(const size_t aNrBytes) {
-  if (mBuffer != NULL) {
-    if (mBufferSize >= aNrBytes)
-      return;
-    else {
-      free(mBuffer);
-      mBuffer = NULL;
-      mBufferSize = 0;
-    }
-  }
+// void File::close() {
+//   if (mBar != nullptr) munmap(mBar, mLength);
 
-  posix_memalign((void**)&mBuffer, 4096 /*alignment*/, aNrBytes + 4096);
-  if (mBuffer == NULL) {
-    exception::PCIe4CommunicationError lExc;
-    log(lExc, "Failed to allocate ", Integer(aNrBytes + 4096),
-        " bytes in File::createBuffer");
-    throw lExc;
-  }
+//   if (mFd != -1) ::close(mFd);
+// }
 
-  mBufferSize = aNrBytes + 4096;
-}
+// void File::createBuffer(const size_t aNrBytes) {
+//   if (mBuffer != NULL) {
+//     if (mBufferSize >= aNrBytes)
+//       return;
+//     else {
+//       free(mBuffer);
+//       mBuffer = NULL;
+//       mBufferSize = 0;
+//     }
+//   }
 
-void File::read(const uint32_t aAddr, const uint32_t aNrWords,
-                std::vector<uint32_t>& aValues) {
-  if (mBar == nullptr) open();
+//   posix_memalign((void**)&mBuffer, 4096 /*alignment*/, aNrBytes + 4096);
+//   if (mBuffer == NULL) {
+//     exception::Axi4LiteCommunicationError lExc;
+//     log(lExc, "Failed to allocate ", Integer(aNrBytes + 4096),
+//         " bytes in File::createBuffer");
+//     throw lExc;
+//   }
 
-  for (size_t i(0); i < aNrWords; ++i) {
-    aValues.push_back(le32toh(mBar[aAddr + i]));
-  }
-}
+//   mBufferSize = aNrBytes + 4096;
+// }
 
-void File::write(const uint32_t aAddr, const std::vector<uint32_t>& aValues) {
-  write(4 * aAddr, reinterpret_cast<const uint8_t*>(aValues.data()),
-        4 * aValues.size());
-}
+// void File::read(const uint32_t aAddr, const uint32_t aNrWords,
+//                 std::vector<uint32_t>& aValues) {
+//   if (mBar == nullptr) open();
 
-void File::write(const uint32_t aAddr, const uint8_t* const aPtr,
-                 const size_t aNrBytes) {
-  if (mBar == nullptr) open();
+//   for (size_t i(0); i < aNrWords; ++i) {
+//     aValues.push_back(le32toh(mBar[aAddr + i]));
+//   }
+// }
 
-  assert((aNrBytes % 4) == 0);
-  uint32_t lNrWordsData = aNrBytes / 4;
+// void File::write(const uint32_t aAddr, const std::vector<uint32_t>& aValues) {
+//   write(aAddr, reinterpret_cast<const uint8_t*>(aValues.data()),
+//         4 * aValues.size());
+// }
 
-  auto lPtr32 = reinterpret_cast<const uint32_t*>(aPtr);
-  for (size_t i(0); i < lNrWordsData; ++i) {
-    mBar[aAddr/4 + i] = lPtr32[i];
-  }
-}
+// void File::write(const uint32_t aAddr, const uint8_t* const aPtr,
+//                  const size_t aNrBytes) {
+//   if (mBar == nullptr) open();
 
-void File::write(const uint32_t aAddr,
-                 const std::vector<std::pair<const uint8_t*, size_t> >& aData) {
-  if (mBar == nullptr) open();
+//   assert((aNrBytes % 4) == 0);
+//   uint32_t lNrWordsData = aNrBytes / 4;
 
-  size_t lNrBytes = 0;
-  for (size_t i = 0; i < aData.size(); i++) lNrBytes += aData.at(i).second;
+//   auto lPtr32 = reinterpret_cast<const uint32_t*>(aPtr);
+//   for (size_t i(0); i < lNrWordsData; ++i) {
+//     mBar[aAddr + i] = lPtr32[i];
+//   }
+// }
 
-  assert((lNrBytes % 4) == 0);
-  size_t lNrWords = lNrBytes/4;
+// void File::write(const uint32_t aAddr,
+//                  const std::vector<std::pair<const uint8_t*, size_t> >& aData) {
+//   if (mBar == nullptr) open();
 
-  createBuffer(lNrBytes);
+//   size_t lNrBytes = 0;
+//   for (size_t i = 0; i < aData.size(); i++) lNrBytes += aData.at(i).second;
 
-  size_t k(0);
-  for (size_t i = 0; i < aData.size(); ++i) {
-    for (size_t j = 0; j < aData.at(i).second; ++j) {
-      mBuffer[k] = aData.at(i).first[j];
-      ++k;
-    }
-  }
+//   assert((lNrBytes % 4) == 0);
+//   size_t lNrWords = lNrBytes/4;
 
-  auto mBuffer32b = reinterpret_cast<const uint32_t*>(mBuffer);
+//   createBuffer(lNrBytes);
 
-  for (size_t i(0); i<lNrWords; ++i) {
-    mBar[aAddr/4 + i] = htole32(mBuffer32b[i]);
-  }
-  // std::memcpy(mBar + aAddr, mBuffer, lNrBytes);
+//   size_t k(0);
+//   for (size_t i = 0; i < aData.size(); ++i) {
+//     for (size_t j = 0; j < aData.at(i).second; ++j) {
+//       mBuffer[k] = aData.at(i).first[j];
+//       ++k;
+//     }
+//   }
 
-}
+//   auto mBuffer32b = reinterpret_cast<const uint32_t*>(mBuffer);
 
-bool File::haveLock() const { return mLocked; }
+//   for (size_t i(0); i<lNrWords; ++i) {
+//     mBar[aAddr + i] = htole32(mBuffer32b[i]);
+//   }
+//   // std::memcpy(mBar + aAddr, mBuffer, lNrBytes);
 
-void File::lock() {
-  if (flock(mFd, LOCK_EX) == -1) {
-    exception::MutexError lExc;
-    log(lExc, "Failed to lock device file ", Quote(mPath),
-        "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
-    throw lExc;
-  }
-  mLocked = true;
-}
+// }
 
-void File::unlock() {
-  if (flock(mFd, LOCK_UN) == -1) {
-    log(Warning(), "Failed to unlock device file ", Quote(mPath),
-        "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
-  } else
-    mLocked = false;
-}
+// bool File::haveLock() const { return mLocked; }
 
-}  // namespace uhal
+// void File::lock() {
+//   if (flock(mFd, LOCK_EX) == -1) {
+//     exception::MutexError lExc;
+//     log(lExc, "Failed to lock device file ", Quote(mPath),
+//         "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
+//     throw lExc;
+//   }
+//   mLocked = true;
+// }
+
+// void File::unlock() {
+//   if (flock(mFd, LOCK_UN) == -1) {
+//     log(Warning(), "Failed to unlock device file ", Quote(mPath),
+//         "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
+//   } else
+//     mLocked = false;
+// }
+
+// }  // namespace uhal
 
 
 int main(int argc, char const* argv[]) {
@@ -219,7 +222,7 @@ int main(int argc, char const* argv[]) {
   uint32_t read_counts;
 
   std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource2";
-  uhal::File f(lBarFile, 0x10000, PROT_WRITE);
+  uhal::Axi4Lite::MappedFile f(lBarFile, 0x10000, PROT_WRITE);
 
   std::vector<uint32_t> lStats;
   f.open();
