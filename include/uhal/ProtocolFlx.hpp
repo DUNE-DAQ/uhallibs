@@ -82,21 +82,11 @@ namespace uhal
   //! Transport protocol to transfer an IPbus buffer via device file, using mmap
   class Flx : public IPbus< 2 , 0 >
   {
-    public:
-      class PacketFmt {
-      public:
-        PacketFmt(const uint8_t* const, const size_t);
-        PacketFmt(const std::vector< std::pair<const uint8_t*, size_t> >& aData);
-        ~PacketFmt();
-
-        const std::vector< std::pair<const uint8_t*, size_t> > mData;
-      };
-
     private:
-      class File {
+      class Card {
       public:
-        File(const std::string& aPath, int aEndpoint, u_int aLockMask);
-        ~File();
+        Card(const std::string& aPath, int aEndpoint, u_int aLockMask);
+        ~Card();
 
         const std::string& getPath() const;
         int getEndpoint() const;
@@ -120,10 +110,10 @@ namespace uhal
         FlxCard mFlxCard;
         bool mIsOpen;
 
-        u_long mWriteAddress;
-        u_long mWriteData;
-        u_long mReadAddress;
-        u_long mReadData;
+        // u_long mWriteAddress;
+        // u_long mWriteData;
+        // u_long mReadAddress;
+        // u_long mReadData;
 
       };
 
@@ -200,7 +190,7 @@ namespace uhal
 
       bool mConnected;
 
-      File mDeviceFile;
+      Card mDeviceFile;
 
       std::chrono::microseconds mSleepDuration;
 

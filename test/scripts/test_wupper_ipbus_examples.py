@@ -4,11 +4,18 @@ import ctypes
 import uhal
 import random
 
-uhal.setLogLevelTo(uhal.LogLevel.WARNING)
+
+def hook_debugger(debugger='gdb'):
+    """debugging helper, hooks debugger to running interpreter process
+    """
+    print('Starting debugger')
+    import os
+    pid = os.spawnvp(os.P_NOWAIT, debugger, [debugger, '-q', 'python', str(os.getpid())])
+
+uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
 
 ctypes.cdll.LoadLibrary('libwupper-toybox.so')
-
-cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusflx-2.0'])
+cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusflx-2.0', 'ipbusflx-2.0'])
 
 flx0 = cm.getDevice('flx-0-ipb')
 

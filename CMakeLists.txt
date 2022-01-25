@@ -33,6 +33,7 @@ set(FELIX_DEPENDENCIES
 ##############################################################################
 # Main library
 daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} uhal::uhal Boost::date_time)
+target_compile_definitions(wupper-toybox PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################
 # Plugins
@@ -41,6 +42,9 @@ daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} uhal::uhal Boost::dat
 # Integration tests
 daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
 daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
+daq_add_application( test-axi4lite test-axi4lite.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
+daq_add_application( test-pcie-axil test-pcie-axil.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
+daq_add_application( test-axi4l-if test-axi4l-if.cxx TEST LINK_LIBRARIES wupper-toybox Boost::filesystem)
 
 ##############################################################################
 # Test configurations
