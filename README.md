@@ -1,15 +1,18 @@
 # uhallibs
 uHAL extension libraries for DUNE DAQ ipbus platforms
 
-The main purpose of this package is to provide a custom ipBus transport for use with FELIX (https://atlas-project-felix.web.cern.ch/atlas-project-felix/).
+This package provides two custom transports for ipBus :
+- via FELIX register map : "ipbusflx-2.0"
+- via Axi4Lite : "ipbusaxi4lite-2.0"
 
-A minimal example for use in Python :
+Minimal examples for use are shown below.
+
 ```
 import uhal
 from ctypes import cdll
 
 cdll.LoadLibrary("libuhallibs.so")
-manager = uhal.ConnectionManager("file://my_connections.xml", ['ipbusflx-2.0'])
+manager = uhal.ConnectionManager("file://my_connections.xml", ["ipbusflx-2.0"])
 ```
 
 And in C++ :
