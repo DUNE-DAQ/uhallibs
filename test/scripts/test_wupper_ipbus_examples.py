@@ -14,8 +14,8 @@ def hook_debugger(debugger='gdb'):
 
 uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
 
-ctypes.cdll.LoadLibrary('libwupper-toybox.so')
-cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusflx-2.0', 'ipbusflx-2.0'])
+ctypes.cdll.LoadLibrary('libuhallibs.so')
+cm = uhal.ConnectionManager('file://${UHALLIBS_SHARE}/config/c.xml', ['ipbusflx-2.0', 'ipbusflx-2.0'])
 
 flx0 = cm.getDevice('flx-0-ipb')
 

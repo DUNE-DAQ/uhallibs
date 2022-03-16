@@ -7,7 +7,7 @@ This package provides two custom transports for ipBus :
 
 Minimal examples for use are shown below.
 
-```
+```python
 import uhal
 from ctypes import cdll
 
@@ -16,6 +16,7 @@ manager = uhal.ConnectionManager("file://my_connections.xml", ["ipbusflx-2.0"])
 ```
 
 And in C++ :
-```
+
+```cpp
 uhal::ConnectionManager cm( std::string("file://my_connections.xml"), {"ipbusflx-2.0"} );
 ```

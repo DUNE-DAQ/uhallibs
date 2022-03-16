@@ -14,11 +14,11 @@ def hook_debugger(debugger='gdb'):
 
 uhal.setLogLevelTo(uhal.LogLevel.DEBUG)
 
-ctypes.cdll.LoadLibrary('libwupper-toybox.so')
+ctypes.cdll.LoadLibrary('libuhallibs.so')
 
 hook_debugger()
 
-cm = uhal.ConnectionManager('file://${WUPPER_TOYBOX_SHARE}/config/c.xml', ['ipbusaxi4lite-2.0', 'ipbusflx-2.0'])
+cm = uhal.ConnectionManager('file://${UHALLIBS_SHARE}/config/c.xml', ['ipbusaxi4lite-2.0', 'ipbusflx-2.0'])
 
 u50 = cm.getDevice('u50-axi4lite')
 

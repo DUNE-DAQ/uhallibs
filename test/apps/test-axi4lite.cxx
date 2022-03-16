@@ -9,7 +9,7 @@ int main(int argc, char const *argv[])
 
     uhal::setLogLevelTo(uhal::Debug());
 
-    uhal::ConnectionManager cm("file://${WUPPER_TOYBOX_SHARE}/config/c.xml", {"ipbusflx-2.0", "ipbusaxi4lite-2.0"});
+    uhal::ConnectionManager cm("file://${UHALLIBS_SHARE}/config/c.xml", {"ipbusflx-2.0", "ipbusaxi4lite-2.0"});
 
     uhal::HwInterface u50 = cm.getDevice("u50-axi4lite");
 
