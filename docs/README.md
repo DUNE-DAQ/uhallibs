@@ -1,11 +1,15 @@
 # uhallibs
 uHAL extension libraries for DUNE DAQ ipbus platforms
 
-This package provides two custom transports for ipBus :
-- via FELIX register map : "ipbusflx-2.0"
-- via Axi4Lite : "ipbusaxi4lite-2.0"
+This package provides two custom transports for IPBus :
+- `ipbusflx-2.0`: via FELIX register map
+- `ipbusaxi4lite-2.0`: via Axi4Lite memory mapping
 
-Minimal examples for use are shown below.
+## IPbus over FELIX register map
+
+## IPBus over AXI4Lite memory mapping
+
+### Minimal examples for use are shown below.
 
 ```python
 import uhal

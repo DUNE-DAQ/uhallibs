@@ -1,3 +1,11 @@
+/**
+
+Low-level ipbus-over-axi4lite test
+
+Small test application to test low-level ipbus communication over axi4 lite using the 
+uhal::Axi4Lite::MappedFile and manually injecting read and write ipbus packets.
+
+**/
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/mman.h>
@@ -15,27 +23,28 @@
 #include "uhal/log/exception.hpp"
 #include "uhal/log/log.hpp"
 
-
 #include "uhal/ProtocolAxi4Lite.hpp"
 
 int main(int argc, char const* argv[]) {
   /* code */
 
-  std::cout << "hello world" << std::endl;
+  std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource0";
+
+  std::cout << "Starting ipbus-axi4lite test on " << lBarFile << std::endl;
 
   uint32_t n_pages;
   uint32_t page_size;
   uint32_t next_write_index;
   uint32_t read_counts;
 
-  std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource2";
   uhal::Axi4Lite::MappedFile f(lBarFile, 0x40, PROT_WRITE);
 
   std::vector<uint32_t> lStats;
   f.open();
   f.lock();
 
-  // Inject an ipbys read transation
+  // Inject an ipbus read transation
+  // Read the the status of the transport interface at address 0x0
   std::cout << "--- Stats ---" << std::endl;
   lStats.clear();
   f.read(0, 4, lStats);
@@ -59,6 +68,7 @@ int main(int argc, char const* argv[]) {
   f.unlock();
   f.close();
 
+  // Re-open the interface file
   uint32_t map_size = n_pages*page_size+4;
   f.setLength(map_size);
   f.open();

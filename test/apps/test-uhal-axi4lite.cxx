@@ -1,3 +1,11 @@
+/**
+
+Simple uhal ipbus-over-axi4lite test
+
+Minimal uhal test application to test 
+
+**/
+
 #include "uhal/ConnectionManager.hpp"
 
 #include "uhal/log/log.hpp"
@@ -11,7 +19,7 @@ int main(int argc, char const *argv[])
 
     uhal::ConnectionManager cm("file://${UHALLIBS_SHARE}/config/c.xml", {"ipbusflx-2.0", "ipbusaxi4lite-2.0"});
 
-    uhal::HwInterface u50 = cm.getDevice("u50-axi4lite");
+    uhal::HwInterface u50 = cm.getDevice("u50-axi4lite-xdma");
 
     u50.getNode("reg").write(0xbbbb);
     u50.dispatch();

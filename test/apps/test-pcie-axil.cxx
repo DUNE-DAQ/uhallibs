@@ -42,7 +42,7 @@ uint32_t reg_read(uint64_t raddr) {
 
     // std::cout << fname << std::endl;
 
-	bar = mmap_bar(fname, raddr*4+4, PROT_READ);
+	bar = mmap_bar(fname, raddr*4+256, PROT_READ);
 
 	uint32_t rval = le32toh(bar[raddr]);
 	munmap(bar, raddr+4);

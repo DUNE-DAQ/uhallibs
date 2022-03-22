@@ -35,9 +35,9 @@ target_compile_definitions(uhallibs PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################
 # Integration tests
-daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
+daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx TEST LINK_LIBRARIES ${FELIX_DEPENDENCIES})
 daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
-daq_add_application( test-axi4lite test-axi4lite.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
+daq_add_application( test-uhal-axi4lite test-uhal-axi4lite.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 daq_add_application( test-pcie-axil test-pcie-axil.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 daq_add_application( test-axi4l-if test-axi4l-if.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 

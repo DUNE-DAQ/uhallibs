@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <connections>
-    <connection id="flx-0-ipb" uri="ipbusflx-2.0:///dev/flx:0" address_table="file://${UHALLIBS_SHARE}/config//addrtabs/ipbus_example.xml" />
-    <connection id="u50-axi4lite" uri="ipbusaxi4lite-2.0:///sys/bus/pci/devices?dev=0000:41:00.0/resource2" address_table="file://${UHALLIBS_SHARE}/config//addrtabs/ipbus_example.xml" />
+    <connection id="flx-0-ipb"         uri="ipbusflx-2.0:///dev/flx:0" address_table="file://${UHALLIBS_SHARE}/config//addrtab/ipbus_example/ipbus_example.xml" />
+    <connection id="u50-axi4lite"      uri="ipbusaxi4lite-2.0:///sys/bus/pci/devices?dev=0000:41:00.0/resource2" address_table="file://${UHALLIBS_SHARE}/config/addrtab/ipbus_example/ipbus_example.xml" />
+    <connection id="u50-axi4lite-xdma" uri="ipbusaxi4lite-2.0:///sys/bus/pci/devices?dev=0000:41:00.0/resource0" address_table="file://${UHALLIBS_SHARE}/config/addrtab/ipbus_example/ipbus_example.xml" />
 </connections>
     
