@@ -10,7 +10,7 @@ include(CMakeFindDependencyMacro)
 
 find_dependency(felix)
 find_dependency(uhal)
-find_dependency(Boost COMPONENTS program_options regex REQUIRED) 
+find_dependency(Boost COMPONENTS filesystem date_time REQUIRED) 
 
 # Figure out whether or not this dependency is an installed package or
 # in repo form
