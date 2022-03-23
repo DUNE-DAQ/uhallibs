@@ -64,23 +64,38 @@ namespace boost
   template <class Y> class shared_ptr;
 }
 
-namespace uhal
-{
-  class Buffers;
+namespace uhal {
   struct URI;
+  class Buffers;
+}
+
+namespace uhallibs
+{
 
   namespace exception
   {
     //! Exception class to handle the case in which the PCIe connection timed out.
-    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS ( FlxTimeout , ClientTimeout , "Exception class to handle the case in which the PCIe connection timed out." )
+    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+      FlxTimeout, 
+      uhal::exception::ClientTimeout, 
+      "Exception class to handle the case in which the PCIe connection timed out."
+    )
     //! Exception class to handle a failure to read from the specified device files during initialisation
-    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS ( FlxInitialisationError , TransportLayerError , "Exception class to handle a failure to read from the specified device files during initialisation." )
+    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS (
+      FlxInitialisationError ,
+      uhal::exception::TransportLayerError ,
+      "Exception class to handle a failure to read from the specified device files during initialisation."
+    )
     //! Exception class to handle a low-level seek/read/write error after initialisation
-    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS ( FlxCommunicationError , TransportLayerError , "Exception class to handle a low-level seek/read/write error after initialisation." )
+    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS (
+      FlxCommunicationError ,
+      uhal::exception::TransportLayerError ,
+      "Exception class to handle a low-level seek/read/write error after initialisation." 
+    )
   }
 
   //! Transport protocol to transfer an IPbus buffer via device file, using mmap
-  class Flx : public IPbus< 2 , 0 >
+  class Flx : public uhal::IPbus< 2 , 0 >
   {
     private:
       class Card {
@@ -138,7 +153,7 @@ namespace uhal
         @param aId the uinique identifier that the client will be given.
         @param aUri a struct containing the full URI of the target.
       */
-      Flx ( const std::string& aId, const URI& aUri );
+      Flx ( const std::string& aId, const uhal::URI& aUri );
 
       //!	Destructor
       virtual ~Flx();
@@ -150,7 +165,7 @@ namespace uhal
         @param aBuffers the buffer object wrapping the send and recieve buffers that are to be transported
         If multithreaded, adds buffer to the dispatch queue and returns. If single-threaded, calls the dispatch-worker dispatch function directly and blocks until the response is validated.
       */
-      void implementDispatch ( std::shared_ptr< Buffers > aBuffers );
+      void implementDispatch ( std::shared_ptr< uhal::Buffers > aBuffers );
 
       //! Concrete implementation of the synchronization function to block until all buffers have been sent, all replies received and all data validated
       virtual void Flush( );
@@ -183,7 +198,7 @@ namespace uhal
       void disconnect();
 
       //! Write request packet to next page in host-to-FPGA device file 
-      void write(const std::shared_ptr<Buffers>& aBuffers);
+      void write(const std::shared_ptr<uhal::Buffers>& aBuffers);
 
       //! Read next pending reply packet from appropriate page of FPGA-to-host device file, and validate contents
       void read();
@@ -197,7 +212,7 @@ namespace uhal
       uint32_t mNumberOfPages, mPageSize, mIndexNextPage, mPublishedReplyPageCount, mReadReplyPageCount;
 
       //! The list of buffers still awaiting a reply
-      std::deque < std::shared_ptr< Buffers > > mReplyQueue;
+      std::deque < std::shared_ptr< uhal::Buffers > > mReplyQueue;
 
       /**
         A pointer to an exception object for passing exceptions from the worker thread to the main thread.

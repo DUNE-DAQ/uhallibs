@@ -16,7 +16,7 @@
 #include "uhal/log/log.hpp"
 
 
-#include "uhal/ProtocolAxi4Lite.hpp"
+#include "uhallibs/ProtocolAxi4Lite.hpp"
 
 int main(int argc, char const* argv[]) {
   /* code */
@@ -29,7 +29,7 @@ int main(int argc, char const* argv[]) {
   uint32_t read_counts;
 
   std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource2";
-  uhal::Axi4Lite::MappedFile f(lBarFile, 0x40, PROT_WRITE);
+  uhallibs::Axi4Lite::MappedFile f(lBarFile, 0x40, PROT_WRITE);
 
   std::vector<uint32_t> lStats;
   f.open();

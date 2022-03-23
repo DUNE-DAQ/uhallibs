@@ -7,7 +7,7 @@
 #include "uhal/ClientInterface.hpp"
 #include "uhal/log/exception.hpp"
 
-namespace uhal {
+namespace uhallibs {
 namespace ipc {
 
 namespace exception {

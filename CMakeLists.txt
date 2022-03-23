@@ -12,22 +12,8 @@ find_package(Boost COMPONENTS filesystem date_time REQUIRED)
 # daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 
 ##############################################################################
-# Dependency sets
-set(FELIX_DEPENDENCIES 
-  felix::regmap
-  felix::packetformat
-  felix::drivers_rcc
-  felix::getinput
-  #felix::io_rcc
-  felix::rcc_error
-  felix::cmem_rcc
-  felix::DFDebug
-  felix::FlxCard
-)
-
-##############################################################################
 # Main library
-daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} uhal::uhal Boost::date_time)
+daq_add_library(*.cpp LINK_LIBRARIES felix::regmap felix::FlxCard uhal::uhal Boost::date_time)
 target_compile_definitions(uhallibs PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################
@@ -35,7 +21,7 @@ target_compile_definitions(uhallibs PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################
 # Integration tests
-daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx LINK_LIBRARIES ${FELIX_DEPENDENCIES})
+daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx TEST LINK_LIBRARIES felix::FlxCard felix::rcc_error felix::cmem_rcc )
 daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 daq_add_application( test-axi4lite test-axi4lite.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 daq_add_application( test-pcie-axil test-pcie-axil.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
