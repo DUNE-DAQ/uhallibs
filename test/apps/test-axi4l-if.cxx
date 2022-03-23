@@ -23,7 +23,8 @@ uhal::Axi4Lite::MappedFile and manually injecting read and write ipbus packets.
 #include "uhal/log/exception.hpp"
 #include "uhal/log/log.hpp"
 
-#include "uhal/ProtocolAxi4Lite.hpp"
+
+#include "uhallibs/ProtocolAxi4Lite.hpp"
 
 int main(int argc, char const* argv[]) {
   /* code */
@@ -37,7 +38,7 @@ int main(int argc, char const* argv[]) {
   uint32_t next_write_index;
   uint32_t read_counts;
 
-  uhal::Axi4Lite::MappedFile f(lBarFile, 0x40, PROT_WRITE);
+  uhallibs::Axi4Lite::MappedFile f(lBarFile, 0x40, PROT_WRITE);
 
   std::vector<uint32_t> lStats;
   f.open();

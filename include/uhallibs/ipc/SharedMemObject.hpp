@@ -4,7 +4,7 @@
 #include <string>
 #include <boost/interprocess/managed_shared_memory.hpp>
 
-namespace uhal {
+namespace uhallibs {
 namespace ipc {
 
 template <class T>

@@ -6,7 +6,7 @@
 #include <vector>                          // for vector
 #include <utility>                         // for pair
 
-namespace uhal {
+namespace uhallibs {
 
 class PacketFmt {
  public:

@@ -1,10 +1,10 @@
-#include "uhal/ipc/RobustMutex.hpp"
+#include "uhallibs/ipc/RobustMutex.hpp"
 
 #include <cstring>
 #include "uhal/log/log.hpp"
 
 
-namespace uhal {
+namespace uhallibs {
 namespace ipc {
 
 RobustMutex::RobustMutex() : mCount(0), mSessionActive(false) {
@@ -13,7 +13,7 @@ RobustMutex::RobustMutex() : mCount(0), mSessionActive(false) {
   int s = pthread_mutexattr_init(&lAttr);
   if (s != 0) {
     exception::MutexError lExc;
-    log(lExc, "Error code ", Integer(s), " (", strerror(s),
+    log(lExc, "Error code ", uhal::Integer(s), " (", strerror(s),
         ") returned in mutex attr initialisation");
     throw lExc;
   }
@@ -21,7 +21,7 @@ RobustMutex::RobustMutex() : mCount(0), mSessionActive(false) {
   s = pthread_mutexattr_setpshared(&lAttr, PTHREAD_PROCESS_SHARED);
   if (s != 0) {
     exception::MutexError lExc;
-    log(lExc, "Error code ", Integer(s), " (", strerror(s),
+    log(lExc, "Error code ", uhal::Integer(s), " (", strerror(s),
         ") returned by pthread_mutexattr_setpshared");
     throw lExc;
   }
@@ -29,7 +29,7 @@ RobustMutex::RobustMutex() : mCount(0), mSessionActive(false) {
   s = pthread_mutexattr_setrobust(&lAttr, PTHREAD_MUTEX_ROBUST);
   if (s != 0) {
     exception::MutexError lExc;
-    log(lExc, "Error code ", Integer(s), " (", strerror(s),
+    log(lExc, "Error code ", uhal::Integer(s), " (", strerror(s),
         ") returned by pthread_mutexattr_setrobust");
     throw lExc;
   }
@@ -37,7 +37,7 @@ RobustMutex::RobustMutex() : mCount(0), mSessionActive(false) {
   s = pthread_mutex_init(&mMutex, &lAttr);
   if (s != 0) {
     exception::MutexError lExc;
-    log(lExc, "Error code ", Integer(s), " (", strerror(s),
+    log(lExc, "Error code ", uhal::Integer(s), " (", strerror(s),
         ") returned in mutex initialisation");
     throw lExc;
   }
@@ -52,7 +52,7 @@ void RobustMutex::lock() {
 
   if (s != 0) {
     exception::MutexError lExc;
-    log(lExc, "Error code ", Integer(s), " (", strerror(s), ") returned when ",
+    log(lExc, "Error code ", uhal::Integer(s), " (", strerror(s), ") returned when ",
         lLastOwnerDied ? "making mutex state consistent" : "locking mutex");
     throw lExc;
   }
@@ -61,7 +61,7 @@ void RobustMutex::lock() {
 void RobustMutex::unlock() {
   int s = pthread_mutex_unlock(&mMutex);
   if (s != 0)
-    log(Error(), "Error code ", Integer(s), " (", strerror(s),
+    log(uhal::Error(), "Error code ", uhal::Integer(s), " (", strerror(s),
         ") returned when unlocking mutex");
 }
 

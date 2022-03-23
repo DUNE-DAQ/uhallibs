@@ -1,4 +1,4 @@
-#include "uhal/ProtocolAxi4Lite.hpp"
+#include "uhallibs/ProtocolAxi4Lite.hpp"
 
 #include <fcntl.h>
 #include <sys/file.h>
@@ -6,16 +6,18 @@
 #include <unistd.h>
 #include <thread>
 
-#include "uhal/formatters.hpp"
+#include "uhallibs/formatters.hpp"
 
 #include "uhal/ClientFactory.hpp"
 #include "uhal/Buffers.hpp"
 
-UHAL_REGISTER_EXTERNAL_CLIENT(uhal::Axi4Lite, "ipbusaxi4lite-2.0", "AXI4 Lite IPBus client")
+using uhal::Integer;
+
+UHAL_REGISTER_EXTERNAL_CLIENT(uhallibs::Axi4Lite, "ipbusaxi4lite-2.0", "AXI4 Lite IPBus client")
 // Syntax: ipbus-qdma-axi4l-2.0:///sys/bus/pci/devices/0000:<bus>:<dev>.<func>/resource<bar#>
 // Syntax: ipbusaxi4lite-2.0://<bus>:<dev>.<func>/resource<bar#>
 // 
-namespace uhal {
+namespace uhallibs {
 
 
 Axi4Lite::MappedFile::MappedFile(const std::string& aPath, size_t aLength, int aProtFlags)
@@ -141,8 +143,8 @@ bool Axi4Lite::MappedFile::haveLock() const { return mLocked; }
 void Axi4Lite::MappedFile::lock() {
   if (flock(mFd, LOCK_EX) == -1) {
     ipc::exception::MutexError lExc;
-    log(lExc, "Failed to lock device file ", Quote(mPath),
-        "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
+    log(lExc, "Failed to lock device file ", uhal::Quote(mPath),
+        "; errno=", Integer(errno), ", meaning ", uhal::Quote(strerror(errno)));
     throw lExc;
   }
   mLocked = true;
@@ -150,8 +152,8 @@ void Axi4Lite::MappedFile::lock() {
 
 void Axi4Lite::MappedFile::unlock() {
   if (flock(mFd, LOCK_UN) == -1) {
-    log(Warning(), "Failed to unlock device file ", Quote(mPath),
-        "; errno=", Integer(errno), ", meaning ", Quote(strerror(errno)));
+    log(uhal::Warning(), "Failed to unlock device file ", uhal::Quote(mPath),
+        "; errno=", Integer(errno), ", meaning ", uhal::Quote(strerror(errno)));
   } else
     mLocked = false;
 }
@@ -165,7 +167,7 @@ std::string Axi4Lite::getSharedMemName(const std::string& aPath)
   return "/uhal::ipbusaxi4lite-2.0::" + lSanitizedPath;
 }
 
-std::string Axi4Lite::getDevicePath(const URI& aUri) {
+std::string Axi4Lite::getDevicePath(const uhal::URI& aUri) {
 
   std::string lPath = aUri.mHostname;
 
@@ -179,7 +181,7 @@ std::string Axi4Lite::getDevicePath(const URI& aUri) {
   return lPath;
 }
 
-Axi4Lite::Axi4Lite(const std::string& aId, const URI& aUri)
+Axi4Lite::Axi4Lite(const std::string& aId, const uhal::URI& aUri)
     : IPbus<2, 0>(aId, aUri),
       mConnected(false),
       mMappedFile(getDevicePath(aUri), 64, PROT_WRITE),
@@ -209,9 +211,9 @@ Axi4Lite::~Axi4Lite() {
 
 
 
-void Axi4Lite::implementDispatch ( std::shared_ptr< Buffers > aBuffers )
+void Axi4Lite::implementDispatch ( std::shared_ptr< uhal::Buffers > aBuffers )
 {
-  log(Debug(), "Axi4Lite client (URI: ", Quote(uri()), ") : implementDispatch method called");
+  log(uhal::Debug(), "Axi4Lite client (URI: ", uhal::Quote(uri()), ") : implementDispatch method called");
 
   if ( ! mConnected )
     connect();
@@ -224,7 +226,7 @@ void Axi4Lite::implementDispatch ( std::shared_ptr< Buffers > aBuffers )
 
 void Axi4Lite::Flush( )
 {
-  log(Debug(), "Axi4Lite client (URI: ", Quote(uri()), ") : Flush method called");
+  log(uhal::Debug(), "Axi4Lite client (URI: ", uhal::Quote(uri()), ") : Flush method called");
   while ( !mReplyQueue.empty() )
     read();
 
@@ -237,7 +239,7 @@ void Axi4Lite::Flush( )
 
 void Axi4Lite::dispatchExceptionHandler()
 {
-  log(Notice(), "Axi4Lite client ", Quote(id()), " (URI: ", Quote(uri()), ") : closing device files since exception detected");
+  log(uhal::Notice(), "Axi4Lite client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : closing device files since exception detected");
 
   ClientInterface::returnBufferToPool ( mReplyQueue );
 
@@ -280,7 +282,7 @@ void Axi4Lite::connect(IPCScopedLock_t& aGuard)
   mIPCExternalSessionActive = mIPCMutex->isActive() and (not mMappedFile.haveLock());
   mIPCSessionCount = mIPCMutex->getCounter();
 
-  log ( Debug() , "Axi4Lite client is opening device file " , Quote ( mMappedFile.getPath() ) , " (device-to-client)" );
+  log ( uhal::Debug() , "Axi4Lite client is opening device file " , uhal::Quote ( mMappedFile.getPath() ) , " (device-to-client)" );
 
   // Minimal mapping to read the 
   mMappedFile.setLength(0x10);
@@ -308,7 +310,7 @@ void Axi4Lite::connect(IPCScopedLock_t& aGuard)
 
   mConnected=true;
 
-  log ( Info() , "Axi4Lite client connected to device at ", Quote(mMappedFile.getPath()), ", FPGA has ", Integer(mNumberOfPages), " pages, each of size ", Integer(mPageSize), " words, index ", Integer(mIndexNextPage), " should be filled next" );
+  log ( uhal::Info() , "Axi4Lite client connected to device at ", uhal::Quote(mMappedFile.getPath()), ", FPGA has ", Integer(mNumberOfPages), " pages, each of size ", Integer(mPageSize), " words, index ", Integer(mIndexNextPage), " should be filled next" );
 
 }
 
@@ -318,7 +320,7 @@ void Axi4Lite::disconnect()
   mConnected = false;
 }
 
-void Axi4Lite::write(const std::shared_ptr<Buffers>& aBuffers)
+void Axi4Lite::write(const std::shared_ptr<uhal::Buffers>& aBuffers)
 {
   if (not mMappedFile.haveLock()) {
     mMappedFile.lock();
@@ -334,7 +336,7 @@ void Axi4Lite::write(const std::shared_ptr<Buffers>& aBuffers)
     }
   }
 
-  log (Info(), "Axi4Lite client ", Quote(id()), " (URI: ", Quote(uri()), ") : writing ", Integer(aBuffers->sendCounter() / 4), "-word packet to page ", Integer(mIndexNextPage), " in ", Quote(mMappedFile.getPath()));
+  log (uhal::Info(), "Axi4Lite client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : writing ", Integer(aBuffers->sendCounter() / 4), "-word packet to page ", Integer(mIndexNextPage), " in ", uhal::Quote(mMappedFile.getPath()));
 
   const uint32_t lHeaderWord = (0x10000 | (((aBuffers->sendCounter() / 4) - 1) & 0xFFFF));
   std::vector<std::pair<const uint8_t*, size_t> > lDataToWrite;
@@ -343,7 +345,7 @@ void Axi4Lite::write(const std::shared_ptr<Buffers>& aBuffers)
 
   IPCScopedLock_t lGuard(*mIPCMutex);
   mMappedFile.write(mIndexNextPage * mPageSize, lDataToWrite);
-  log (Debug(), "Wrote " , Integer((aBuffers->sendCounter() / 4) + 1), " 32-bit words at address " , Integer(mIndexNextPage * mPageSize), " ... ", PacketFmt(lDataToWrite));
+  log (uhal::Debug(), "Wrote " , Integer((aBuffers->sendCounter() / 4) + 1), " 32-bit words at address " , Integer(mIndexNextPage * mPageSize), " ... ", PacketFmt(lDataToWrite));
 
   mIndexNextPage = (mIndexNextPage + 1) % mNumberOfPages;
   mReplyQueue.push_back(aBuffers);
@@ -365,7 +367,7 @@ void Axi4Lite::read()
       IPCScopedLock_t lGuard(*mIPCMutex);
       mMappedFile.read(0, 4, lValues);
       lHwPublishedPageCount = lValues.at(3);
-      log (Debug(), "Read status info from addr 0 (", Integer(lValues.at(0)), ", ", Integer(lValues.at(1)), ", ", Integer(lValues.at(2)), ", ", Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
+      log (uhal::Debug(), "Read status info from addr 0 (", Integer(lValues.at(0)), ", ", Integer(lValues.at(1)), ", ", Integer(lValues.at(2)), ", ", Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
 
       if (lHwPublishedPageCount != mPublishedReplyPageCount) {
         mPublishedReplyPageCount = lHwPublishedPageCount;
@@ -379,19 +381,19 @@ void Axi4Lite::read()
         throw lExc;
       }
 
-      log(Debug(), "Axi4Lite client ", Quote(id()), " (URI: ", Quote(uri()), ") : Trying to read page index ", Integer(lPageIndexToRead), " = count ", Integer(mReadReplyPageCount+1), "; published page count is ", Integer(lHwPublishedPageCount), "; sleeping for ", mSleepDuration.count(), "us");
+      log(uhal::Debug(), "Axi4Lite client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Trying to read page index ", Integer(lPageIndexToRead), " = count ", Integer(mReadReplyPageCount+1), "; published page count is ", Integer(lHwPublishedPageCount), "; sleeping for ", mSleepDuration.count(), "us");
       if (mSleepDuration > std::chrono::microseconds(0))
         std::this_thread::sleep_for( mSleepDuration );
       lValues.clear();
     }
 
-    log(Info(), "Axi4Lite client ", Quote(id()), " (URI: ", Quote(uri()), ") : Reading page ", Integer(lPageIndexToRead), " (published count ", Integer(lHwPublishedPageCount), ", surpasses required, ", Integer(mReadReplyPageCount + 1), ")");
+    log(uhal::Info(), "Axi4Lite client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Reading page ", Integer(lPageIndexToRead), " (published count ", Integer(lHwPublishedPageCount), ", surpasses required, ", Integer(mReadReplyPageCount + 1), ")");
 
   }
   mReadReplyPageCount++;
   
   // PART 1 : Read the page
-  std::shared_ptr<Buffers> lBuffers = mReplyQueue.front();
+  std::shared_ptr<uhal::Buffers> lBuffers = mReplyQueue.front();
   mReplyQueue.pop_front();
 
   uint32_t lNrWordsToRead(lBuffers->replyCounter() >> 2);
@@ -401,13 +403,13 @@ void Axi4Lite::read()
   IPCScopedLock_t lGuard(*mIPCMutex);
   mMappedFile.read(4 + lPageIndexToRead * mPageSize, lNrWordsToRead , lPageContents);
   lGuard.unlock();
-  log (Debug(), "Read " , Integer(lNrWordsToRead), " 32-bit words from address " , Integer(4 + lPageIndexToRead * 4 * mPageSize), " ... ", PacketFmt((const uint8_t*)lPageContents.data(), 4 * lPageContents.size()));
+  log (uhal::Debug(), "Read " , Integer(lNrWordsToRead), " 32-bit words from address " , Integer(4 + lPageIndexToRead * 4 * mPageSize), " ... ", PacketFmt((const uint8_t*)lPageContents.data(), 4 * lPageContents.size()));
 
   // PART 2 : Transfer to reply buffer
   const std::deque< std::pair< uint8_t* , uint32_t > >& lReplyBuffers ( lBuffers->getReplyBuffer() );
   size_t lNrWordsInPacket = (lPageContents.at(0) >> 16) + (lPageContents.at(0) & 0xFFFF);
   if (lNrWordsInPacket != (lBuffers->replyCounter() >> 2))
-    log (Warning(), "Expected reply packet to contain ", Integer(lBuffers->replyCounter() >> 2), " words, but it actually contains ", Integer(lNrWordsInPacket), " words");
+    log (uhal::Warning(), "Expected reply packet to contain ", Integer(lBuffers->replyCounter() >> 2), " words, but it actually contains ", Integer(lNrWordsInPacket), " words");
 
   size_t lNrBytesCopied = 0;
   for (const auto& lBuffer: lReplyBuffers)
@@ -428,10 +430,10 @@ void Axi4Lite::read()
   {
     lExc = ClientInterface::validate ( lBuffers );
   }
-  catch ( exception::exception& aExc )
+  catch ( uhal::exception::exception& aExc )
   {
-    exception::ValidationError lExc2;
-    log ( lExc2 , "Exception caught during reply validation for Axi4Lite device with URI " , Quote ( this->uri() ) , "; what returned: " , Quote ( aExc.what() ) );
+    uhal::exception::ValidationError lExc2;
+    log ( lExc2 , "Exception caught during reply validation for Axi4Lite device with URI " , uhal::Quote ( this->uri() ) , "; what returned: " , uhal::Quote ( aExc.what() ) );
     throw lExc2;
   }
 

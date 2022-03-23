@@ -55,37 +55,44 @@
 
 #include "uhal/ClientInterface.hpp"
 #include "uhal/ProtocolIPbus.hpp"
-#include "uhal/formatters.hpp"
-#include "uhal/ipc/RobustMutex.hpp"
-#include "uhal/ipc/SharedMemObject.hpp"
 #include "uhal/log/exception.hpp"
+#include "uhallibs/formatters.hpp"
+#include "uhallibs/ipc/RobustMutex.hpp"
+#include "uhallibs/ipc/SharedMemObject.hpp"
 
 namespace uhal {
-class Buffers;
-struct URI;
+  struct URI;
+  class Buffers;
+}
+
+namespace uhallibs {
 
 namespace exception {
 //! Exception class to handle the case in which the Axi4Lite connection timed
 //! out.
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(Axi4LiteTimeout, ClientTimeout,
-                                    "Exception class to handle the case in "
-                                    "which the Axi4Lite connection timed out.")
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+  Axi4LiteTimeout, uhal::exception::ClientTimeout,
+  "Exception class to handle the case in "
+  "which the Axi4Lite connection timed out."
+  )
 //! Exception class to handle a failure to read from the specified device files
 //! during initialisation
 UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    Axi4LiteInitialisationError, TransportLayerError,
+    Axi4LiteInitialisationError, uhal::exception::TransportLayerError,
     "Exception class to handle a failure to read from the specified device "
-    "files during initialisation.")
+    "files during initialisation."
+    )
 //! Exception class to handle a low-level seek/read/write error after
 //! initialisation
 UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    Axi4LiteCommunicationError, TransportLayerError,
+    Axi4LiteCommunicationError, uhal::exception::TransportLayerError,
     "Exception class to handle a low-level seek/read/write error after "
-    "initialisation.")
+    "initialisation."
+    )
 }  // namespace exception
 
 //! Transport protocol to transfer an IPbus buffer over Axi4Lite mapped in a 32b address space
-class Axi4Lite : public IPbus<2, 0> {
+class Axi4Lite : public uhal::IPbus<2, 0> {
  public:
   class MappedFile {
    public:
@@ -140,7 +147,7 @@ class Axi4Lite : public IPbus<2, 0> {
     @param aId the uinique identifier that the client will be given.
     @param aUri a struct containing the full URI of the target.
   */
-  Axi4Lite(const std::string& aId, const URI& aUri);
+  Axi4Lite(const std::string& aId, const uhal::URI& aUri);
 
   Axi4Lite ( const Axi4Lite& ) = delete;
   Axi4Lite& operator= ( const Axi4Lite& ) = delete;
@@ -164,7 +171,7 @@ class Axi4Lite : public IPbus<2, 0> {
     @param aBuffers the buffer object wrapping the send and recieve buffers that are to be transported
     If multithreaded, adds buffer to the dispatch queue and returns. If single-threaded, calls the dispatch-worker dispatch function directly and blocks until the response is validated.
   */
-  void implementDispatch ( std::shared_ptr< Buffers > aBuffers );
+  void implementDispatch ( std::shared_ptr< uhal::Buffers > aBuffers );
 
   //! Concrete implementation of the synchronization function to block until all buffers have been sent, all replies received and all data validated
   virtual void Flush( );
@@ -172,7 +179,7 @@ class Axi4Lite : public IPbus<2, 0> {
   //! Function which tidies up this protocol layer in the event of an exception
   virtual void dispatchExceptionHandler();
 
-  static std::string getDevicePath(const URI& aUri);
+  static std::string getDevicePath(const uhal::URI& aUri);
 
   static std::string getSharedMemName(const std::string& );
 
@@ -197,7 +204,7 @@ class Axi4Lite : public IPbus<2, 0> {
   void disconnect();
 
   //! Write request packet to next page in host-to-FPGA device file 
-  void write(const std::shared_ptr<Buffers>& aBuffers);
+  void write(const std::shared_ptr<uhal::Buffers>& aBuffers);
 
   //! Read next pending reply packet from appropriate page of FPGA-to-host device file, and validate contents
   void read();
@@ -215,7 +222,7 @@ class Axi4Lite : public IPbus<2, 0> {
   uint32_t mNumberOfPages, mMaxInFlight, mPageSize, mMaxPacketSize, mIndexNextPage, mPublishedReplyPageCount, mReadReplyPageCount;
 
   //! The list of buffers still awaiting a reply
-  std::deque < std::shared_ptr< Buffers > > mReplyQueue;
+  std::deque < std::shared_ptr< uhal::Buffers > > mReplyQueue;
 };
 
 }  // namespace uhal

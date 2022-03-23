@@ -1,8 +1,8 @@
-#include "uhal/formatters.hpp"
+#include "uhallibs/formatters.hpp"
 
 #include <iomanip>                         // for pair
 
-namespace uhal {
+namespace uhallibs {
 
 
 PacketFmt::PacketFmt(const uint8_t* const aPtr, const size_t aNrBytes) :

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(uhallibs VERSION 1.0.1)
+project(uhallibs VERSION 1.0.2)
 
 find_package(daq-cmake REQUIRED)
 
@@ -7,27 +7,13 @@ daq_setup_environment()
 
 find_package(felix REQUIRED)
 find_package(uhal REQUIRED)
-find_package(Boost 1.73.0 COMPONENTS filesystem date_time REQUIRED)
+find_package(Boost COMPONENTS filesystem date_time REQUIRED)
 
 # daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 
 ##############################################################################
-# Dependency sets
-set(FELIX_DEPENDENCIES 
-  felix::regmap
-  felix::packetformat
-  felix::drivers_rcc
-  felix::getinput
-  #felix::io_rcc
-  felix::rcc_error
-  felix::cmem_rcc
-  felix::DFDebug
-  felix::FlxCard
-)
-
-##############################################################################
 # Main library
-daq_add_library(*.cpp LINK_LIBRARIES ${FELIX_DEPENDENCIES} uhal::uhal Boost::date_time)
+daq_add_library(*.cpp LINK_LIBRARIES felix::regmap felix::FlxCard uhal::uhal Boost::date_time)
 target_compile_definitions(uhallibs PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################

@@ -39,7 +39,7 @@
 	@date September 2019
 */
 
-#include "uhal/ProtocolFlx.hpp"
+#include "uhallibs/ProtocolFlx.hpp"
 
 
 #include <algorithm>                                        // for min
@@ -60,20 +60,20 @@
 
 #include "uhal/grammars/URI.hpp"                            // for URI
 #include "uhal/log/LogLevels.hpp"                           // for BaseLogLevel
-#include "uhal/log/log_inserters.integer.hpp"               // for Integer
-#include "uhal/log/log_inserters.quote.hpp"                 // for Quote
+#include "uhal/log/log_inserters.integer.hpp"               // for uhal::Integer
+#include "uhal/log/log_inserters.quote.hpp"                 // for uhal::Quote
 #include "uhal/log/log.hpp"
 #include "uhal/Buffers.hpp"
 #include "uhal/ClientFactory.hpp"
 
-#include "uhal/formatters.hpp"
+#include "uhallibs/formatters.hpp"
 
 #include "regmap/regmap-struct.h"
 
-UHAL_REGISTER_EXTERNAL_CLIENT(uhal::Flx, "ipbusflx-2.0", "A client description")
+UHAL_REGISTER_EXTERNAL_CLIENT(uhallibs::Flx, "ipbusflx-2.0", "A client description")
 
 
-namespace uhal {
+namespace uhallibs {
 
 
 //-----------------------------------------------------------------------------
@@ -118,12 +118,12 @@ Flx::Card::~Card() {
 //-----------------------------------------------------------------------------
 void Flx::Card::open() {
   
-  log(Debug(), "Flx::Card client Opening felix endpoint ", mEndpoint, " on ", mPath);
+  log(uhal::Debug(), "Flx::Card client Opening felix endpoint ", mEndpoint, " on ", mPath);
 
   if( access( mPath.c_str(), F_OK ) == -1 ) {
 
     exception::FlxInitialisationError lExc;
-    log(lExc, "Failed to open device file ", Quote(mPath), "; errno=", Integer(errno), ", meaning ", Quote (strerror(errno)));
+    log(lExc, "Failed to open device file ", uhal::Quote(mPath), "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote (strerror(errno)));
     throw lExc;
   }
 
@@ -178,7 +178,7 @@ void Flx::Card::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<
         aValues.push_back(lDataWord >> 32);
   }
 
-  log(Debug(), "Flx::Card::read, ", aNrWords, " requested, ", aValues.size(), " read");
+  log(uhal::Debug(), "Flx::Card::read, ", aNrWords, " requested, ", aValues.size(), " read");
 
 }
 
@@ -190,12 +190,7 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   if (!mIsOpen)
     open();
 
-  // uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
-  //AAA TODO: use regmap built-in addresses
   flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
-
-  // BBB uint64_t *lWriteAddrPtr = (uint64_t *)(lBaseAddr + mWriteAddress);
-  // BBB uint64_t *lWriteDataPtr = (uint64_t *)(lBaseAddr + mWriteData);
 
   size_t lNrBytes = 0;
   for (size_t i = 0; i < aData.size(); i++)
@@ -207,7 +202,7 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   posix_memalign((void **)&allocated, 4096/*alignment*/, lNrBytes + 4096);
   if (allocated == NULL) {
     exception::FlxCommunicationError lExc;
-    log(lExc, "Failed to allocate ", Integer(lNrBytes + 4096), " bytes in File::write/2 function");
+    log(lExc, "Failed to allocate ", uhal::Integer(lNrBytes + 4096), " bytes in File::write/2 function");
     throw lExc;
   }
 
@@ -219,21 +214,17 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
     lNrBytesCopied += aData.at(i).second;
   }
 
-//  memcpy(aFlxBaseAddress + aAddr, buffer, lNrBytes);
   lNrBytesCopied = 0;
   uint32_t lAddr = aAddr/2;
 
   while (lNrBytesCopied < lNrBytes) {
-    // *lWriteAddrPtr = lAddr;
     bar2->IPBUS_WRITE_ADDRESS = lAddr;
     char* lSrcPtr = buffer + lNrBytesCopied;
     if ((lNrBytes - lNrBytesCopied) >= 8) {
-      // *lWriteDataPtr = *(uint64_t*) lSrcPtr;
       bar2->IPBUS_WRITE_DATA.DATA = *(uint64_t*) lSrcPtr;
       lNrBytesCopied += 8;
     }
     else if ((lNrBytes - lNrBytesCopied) >= 4) {
-      // *lWriteDataPtr = uint64_t(*(uint32_t*) lSrcPtr);
       bar2->IPBUS_WRITE_DATA.DATA = uint64_t(*(uint32_t*) lSrcPtr);
       lNrBytesCopied += 4;
     }
@@ -247,7 +238,7 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
 
 
 
-Flx::Flx ( const std::string& aId, const URI& aUri ) :
+Flx::Flx ( const std::string& aId, const uhal::URI& aUri ) :
   IPbus< 2 , 0 > ( aId , aUri ),
   mConnected(false),
   mDeviceFile(aUri.mHostname, std::stoul(aUri.mPort), LOCK_NONE),
@@ -260,19 +251,19 @@ Flx::Flx ( const std::string& aId, const URI& aUri ) :
 {
   mSleepDuration = std::chrono::microseconds(50);
 
-  for (NameValuePairVectorType::const_iterator lIt = aUri.mArguments.begin(); lIt != aUri.mArguments.end(); lIt++) {
+  for (uhal::NameValuePairVectorType::const_iterator lIt = aUri.mArguments.begin(); lIt != aUri.mArguments.end(); lIt++) {
     if (lIt->first == "sleep") {
       mSleepDuration = std::chrono::microseconds(std::stoul(lIt->second));
-      log (Notice() , "flx client with URI ", Quote (uri()), " : Inter-poll-/-interrupt sleep duration set to ", std::stoul(lIt->second), " us by URI 'sleep' attribute");
+      log (uhal::Notice() , "flx client with URI ", uhal::Quote (uri()), " : Inter-poll-/-interrupt sleep duration set to ", std::stoul(lIt->second), " us by URI 'sleep' attribute");
     }
     // else if (lIt->first == "offset") {
     //   const bool lIsHex = (lIt->second.find("0x") == 0) or (lIt->second.find("0X") == 0);
     //   const size_t lOffset = (lIsHex ? std::lexical_cast<HexTo<size_t> >(lIt->second) : std::stoul(lIt->second));
     //   mDeviceFile.setOffset(lOffset);
-    //   log (Notice(), "flx client with URI ", Quote (uri()), " : Address offset set to ", Integer(lOffset, IntFmt<hex>()));
+    //   log (uhal::Notice(), "flx client with URI ", uhal::Quote (uri()), " : Address offset set to ", uhal::Integer(lOffset, IntFmt<hex>()));
     // }
     else {
-      log (Warning() , "Unknown attribute ", Quote (lIt->first), " used in URI ", Quote(uri()));
+      log (uhal::Warning() , "Unknown attribute ", uhal::Quote (lIt->first), " used in URI ", uhal::Quote(uri()));
     }
   }
 }
@@ -284,9 +275,9 @@ Flx::~Flx()
 }
 
 
-void Flx::implementDispatch ( std::shared_ptr< Buffers > aBuffers )
+void Flx::implementDispatch ( std::shared_ptr< uhal::Buffers > aBuffers )
 {
-  log(Debug(), "flx client (URI: ", Quote(uri()), ") : implementDispatch method called");
+  log(uhal::Debug(), "flx client (URI: ", uhal::Quote(uri()), ") : implementDispatch method called");
 
   if ( ! mConnected )
     connect();
@@ -299,7 +290,7 @@ void Flx::implementDispatch ( std::shared_ptr< Buffers > aBuffers )
 
 void Flx::Flush( )
 {
-  log(Debug(), "flx client (URI: ", Quote(uri()), ") : Flush method called");
+  log(uhal::Debug(), "flx client (URI: ", uhal::Quote(uri()), ") : Flush method called");
   while ( !mReplyQueue.empty() )
     read();
 
@@ -309,7 +300,7 @@ void Flx::Flush( )
 void Flx::dispatchExceptionHandler()
 {
   // FIXME: Adapt to PCIe implementation
-  // log(Notice(), "flx client ", Quote(id()), " (URI: ", Quote(uri()), ") : closing device files since exception detected");
+  // log(uhal::Notice(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : closing device files since exception detected");
 
   // ClientInterface::returnBufferToPool ( mReplyQueue );
   // disconnect();
@@ -338,10 +329,10 @@ uint32_t Flx::getMaxReplySize()
 
 void Flx::connect()
 {
-  log ( Debug() , "flx client is opening device file " , Quote ( mDeviceFile.getPath() ) );
+  log ( uhal::Debug() , "flx client is opening device file " , uhal::Quote ( mDeviceFile.getPath() ) );
   std::vector<uint32_t> lValues;
   mDeviceFile.read(0x0, 4, lValues);
-  log (Debug(), "Read status info from addr 0 (", Integer(lValues.at(0)), ", ", Integer(lValues.at(1)), ", ", Integer(lValues.at(2)), ", ", Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
+  log (uhal::Debug(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
 
   mNumberOfPages = lValues.at(0);
   // mPageSize = std::min(uint32_t(4096), lValues.at(1));
@@ -352,18 +343,18 @@ void Flx::connect()
 
   if (lValues.at(1) > 0xFFFF) {
     exception::FlxInitialisationError lExc;
-    log (lExc, "Invalid page size, ", Integer(lValues.at(1)), ", reported in device file ", Quote(mDeviceFile.getPath()));
+    log (lExc, "Invalid page size, ", uhal::Integer(lValues.at(1)), ", reported in device file ", uhal::Quote(mDeviceFile.getPath()));
     throw lExc;
   }
 
   if (mIndexNextPage >= mNumberOfPages) {
     exception::FlxInitialisationError lExc;
-    log (lExc, "Next page index, ", Integer(mIndexNextPage), ", reported in device file ", Quote(mDeviceFile.getPath()), " is inconsistent with number of pages, ", Integer(mNumberOfPages));
+    log (lExc, "Next page index, ", uhal::Integer(mIndexNextPage), ", reported in device file ", uhal::Quote(mDeviceFile.getPath()), " is inconsistent with number of pages, ", uhal::Integer(mNumberOfPages));
     throw lExc;
   }
 
   mConnected = true;
-  log ( Info() , "flx client connected to device at ", Quote(mDeviceFile.getPath()), "; FPGA has ", Integer(mNumberOfPages), " pages, each of size ", Integer(mPageSize), " words, index ", Integer(mIndexNextPage), " should be filled next" );
+  log ( uhal::Info() , "flx client connected to device at ", uhal::Quote(mDeviceFile.getPath()), "; FPGA has ", uhal::Integer(mNumberOfPages), " pages, each of size ", uhal::Integer(mPageSize), " words, index ", uhal::Integer(mIndexNextPage), " should be filled next" );
 }
 
 
@@ -374,9 +365,9 @@ void Flx::disconnect()
 }
 
 
-void Flx::write(const std::shared_ptr<Buffers>& aBuffers)
+void Flx::write(const std::shared_ptr<uhal::Buffers>& aBuffers)
 {
-  log (Info(), "flx client ", Quote(id()), " (URI: ", Quote(uri()), ") : writing ", Integer(aBuffers->sendCounter() / 4), "-word packet to page ", Integer(mIndexNextPage), " in ", Quote(mDeviceFile.getPath()));
+  log (uhal::Info(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : writing ", uhal::Integer(aBuffers->sendCounter() / 4), "-word packet to page ", uhal::Integer(mIndexNextPage), " in ", uhal::Quote(mDeviceFile.getPath()));
 
   const uint32_t lHeaderWord = (0x10000 | (((aBuffers->sendCounter() / 4) - 1) & 0xFFFF));
   std::vector<std::pair<const uint8_t*, size_t> > lDataToWrite;
@@ -385,7 +376,7 @@ void Flx::write(const std::shared_ptr<Buffers>& aBuffers)
   // mDeviceFile.write(mIndexNextPage * 4 * mPageSize, lDataToWrite);
   mDeviceFile.write(mIndexNextPage * mPageSize, lDataToWrite);
 
-  log (Debug(), "Wrote " , Integer((aBuffers->sendCounter() / 4) + 1), " 32-bit words at address " , Integer(mIndexNextPage * 4 * mPageSize), " ... ", PacketFmt(lDataToWrite));
+  log (uhal::Debug(), "Wrote " , uhal::Integer((aBuffers->sendCounter() / 4) + 1), " 32-bit words at address " , uhal::Integer(mIndexNextPage * 4 * mPageSize), " ... ", PacketFmt(lDataToWrite));
 
   mIndexNextPage = (mIndexNextPage + 1) % mNumberOfPages;
   mReplyQueue.push_back(aBuffers);
@@ -406,7 +397,7 @@ void Flx::read()
       // FIXME : Improve by simply adding dmaWrite method that takes uint32_t ref as argument (or returns uint32_t)
       mDeviceFile.read(0, 4, lValues);
       lHwPublishedPageCount = lValues.at(3);
-      log (Debug(), "Read status info from addr 0 (", Integer(lValues.at(0)), ", ", Integer(lValues.at(1)), ", ", Integer(lValues.at(2)), ", ", Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
+      log (uhal::Debug(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
 
       if (lHwPublishedPageCount != mPublishedReplyPageCount) {
         mPublishedReplyPageCount = lHwPublishedPageCount;
@@ -416,21 +407,21 @@ void Flx::read()
 
       if (SteadyClock_t::now() - lStartTime > std::chrono::microseconds(getBoostTimeoutPeriod().total_microseconds())) {
         exception::FlxTimeout lExc;
-        log(lExc, "Next page (index ", Integer(lPageIndexToRead), " count ", Integer(mPublishedReplyPageCount+1), ") of flx device '" + mDeviceFile.getPath() + "' is not ready after timeout period");
+        log(lExc, "Next page (index ", uhal::Integer(lPageIndexToRead), " count ", uhal::Integer(mPublishedReplyPageCount+1), ") of flx device '" + mDeviceFile.getPath() + "' is not ready after timeout period");
         throw lExc;
       }
 
-      log(Debug(), "flx client ", Quote(id()), " (URI: ", Quote(uri()), ") : Trying to read page index ", Integer(lPageIndexToRead), " = count ", Integer(mReadReplyPageCount+1), "; published page count is ", Integer(lHwPublishedPageCount), "; sleeping for ", mSleepDuration.count(), "us");
+      log(uhal::Debug(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Trying to read page index ", uhal::Integer(lPageIndexToRead), " = count ", uhal::Integer(mReadReplyPageCount+1), "; published page count is ", uhal::Integer(lHwPublishedPageCount), "; sleeping for ", mSleepDuration.count(), "us");
       if (mSleepDuration > std::chrono::microseconds(0))
         std::this_thread::sleep_for( mSleepDuration );
     }
 
-    log(Info(), "flx client ", Quote(id()), " (URI: ", Quote(uri()), ") : Reading page ", Integer(lPageIndexToRead), " (published count ", Integer(lHwPublishedPageCount), ", surpasses required, ", Integer(mReadReplyPageCount + 1), ")");
+    log(uhal::Info(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Reading page ", uhal::Integer(lPageIndexToRead), " (published count ", uhal::Integer(lHwPublishedPageCount), ", surpasses required, ", uhal::Integer(mReadReplyPageCount + 1), ")");
   }
   mReadReplyPageCount++;
   
   // PART 1 : Read the page
-  std::shared_ptr<Buffers> lBuffers = mReplyQueue.front();
+  std::shared_ptr<uhal::Buffers> lBuffers = mReplyQueue.front();
   mReplyQueue.pop_front();
 
   uint32_t lNrWordsToRead(lBuffers->replyCounter() >> 2);
@@ -438,13 +429,13 @@ void Flx::read()
  
   std::vector<uint32_t> lPageContents;
   mDeviceFile.read(4 + lPageIndexToRead * mPageSize, lNrWordsToRead , lPageContents);
-  log (Debug(), "Read " , Integer(lNrWordsToRead), " 32-bit words from address " , Integer(4 + lPageIndexToRead * 4 * mPageSize), " ... ", PacketFmt((const uint8_t*)lPageContents.data(), 4 * lPageContents.size()));
+  log (uhal::Debug(), "Read " , uhal::Integer(lNrWordsToRead), " 32-bit words from address " , uhal::Integer(4 + lPageIndexToRead * 4 * mPageSize), " ... ", PacketFmt((const uint8_t*)lPageContents.data(), 4 * lPageContents.size()));
 
   // PART 2 : Transfer to reply buffer
   const std::deque< std::pair< uint8_t* , uint32_t > >& lReplyBuffers ( lBuffers->getReplyBuffer() );
   size_t lNrWordsInPacket = (lPageContents.at(0) >> 16) + (lPageContents.at(0) & 0xFFFF);
   if (lNrWordsInPacket != (lBuffers->replyCounter() >> 2))
-    log (Warning(), "Expected reply packet to contain ", Integer(lBuffers->replyCounter() >> 2), " words, but it actually contains ", Integer(lNrWordsInPacket), " words");
+    log (uhal::Warning(), "Expected reply packet to contain ", uhal::Integer(lBuffers->replyCounter() >> 2), " words, but it actually contains ", uhal::Integer(lNrWordsInPacket), " words");
 
   size_t lNrBytesCopied = 0;
   for ( std::deque< std::pair< uint8_t* , uint32_t > >::const_iterator lIt = lReplyBuffers.begin() ; lIt != lReplyBuffers.end() ; ++lIt )
@@ -467,10 +458,10 @@ void Flx::read()
       mAsynchronousException = lExc;
     }
   }
-  catch ( exception::exception& aExc )
+  catch ( uhal::exception::exception& aExc )
   {
-    mAsynchronousException = new exception::ValidationError ();
-    log ( *mAsynchronousException , "Exception caught during reply validation for flx device with URI " , Quote ( this->uri() ) , "; what returned: " , Quote ( aExc.what() ) );
+    mAsynchronousException = new uhal::exception::ValidationError ();
+    log ( *mAsynchronousException , "Exception caught during reply validation for flx device with URI " , uhal::Quote ( this->uri() ) , "; what returned: " , uhal::Quote ( aExc.what() ) );
   }
 
   if ( mAsynchronousException )
