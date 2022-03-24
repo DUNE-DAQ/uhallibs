@@ -9,8 +9,6 @@ find_package(felix REQUIRED)
 find_package(uhal REQUIRED)
 find_package(Boost COMPONENTS filesystem date_time REQUIRED)
 
-# daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
-
 ##############################################################################
 # Main library
 daq_add_library(*.cpp LINK_LIBRARIES felix::regmap felix::FlxCard uhal::uhal Boost::date_time)
@@ -21,7 +19,7 @@ target_compile_definitions(uhallibs PUBLIC REGMAP_VERSION=0x0500)
 
 ##############################################################################
 # Integration tests
-daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx TEST LINK_LIBRARIES ${FELIX_DEPENDENCIES})
+daq_add_application( toy-tohost-dma-test toy-tohost-dma-test.cxx TEST LINK_LIBRARIES felix::FlxCard felix::rcc_error felix::cmem_rcc )
 daq_add_application( test-wuip test-wuip.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 daq_add_application( test-uhal-axi4lite test-uhal-axi4lite.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
 daq_add_application( test-pcie-axil test-pcie-axil.cxx TEST LINK_LIBRARIES uhallibs Boost::filesystem)
