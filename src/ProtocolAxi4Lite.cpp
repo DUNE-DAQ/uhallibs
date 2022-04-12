@@ -194,15 +194,6 @@ Axi4Lite::Axi4Lite(const std::string& aId, const uhal::URI& aUri)
       mPublishedReplyPageCount(0),
       mReadReplyPageCount(0) {
 
-
-        std::cout << "protocol = " << aUri.mProtocol << std::endl; 
-        std::cout << "host     = " << aUri.mHostname << std::endl; 
-        std::cout << "port     = " << aUri.mPort << std::endl; 
-        std::cout << "path     = " << aUri.mPath << std::endl; 
-        std::cout << "ext      = " << aUri.mExtension << std::endl; 
-        for ( auto& a : aUri.mArguments ) {
-          std::cout << a.first << " " << a.second << std::endl;
-        }
       }
 
 Axi4Lite::~Axi4Lite() {
