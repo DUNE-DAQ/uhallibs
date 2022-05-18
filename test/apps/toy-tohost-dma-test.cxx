@@ -65,7 +65,7 @@ void dump_buffer(u_long virt_addr)
 int main(int argc, char **argv)
 /*****************************/
 {
-  int i, loop, ret, device_number = 0, opt, handle, debuglevel;
+  int i, loop, ret, device_number = 0, opt, handle;
   u_long baraddr0, vaddr, paddr, board_id, bsize, opt_emu_ena_to_host, opt_emu_ena_to_frontend;
   flxcard_bar0_regs_t *bar0;
 
