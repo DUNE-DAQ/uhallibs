@@ -12,7 +12,7 @@ Minimal uhal test application to test
 
 #include <iostream>
 
-int main(int argc, char const *argv[])
+int main(int /* argc */, char const * /* argv[] */)
 {
 
     uhal::setLogLevelTo(uhal::Debug());

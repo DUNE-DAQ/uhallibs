@@ -26,7 +26,7 @@ uhal::Axi4Lite::MappedFile and manually injecting read and write ipbus packets.
 
 #include "uhallibs/ProtocolAxi4Lite.hpp"
 
-int main(int argc, char const* argv[]) {
+int main(int /* argc */, char const* /* argv[] */) {
   /* code */
 
   std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource0";
