@@ -201,6 +201,8 @@ Axi4Lite::Axi4Lite(const std::string& aId, const uhal::URI& aUri)
       mPublishedReplyPageCount(0),
       mReadReplyPageCount(0) {
 
+        mSleepDuration = std::chrono::microseconds(50);
+
       }
 
 Axi4Lite::~Axi4Lite() {
