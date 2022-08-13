@@ -56,9 +56,16 @@ void Axi4Lite::MappedFile::close() {
   if (mBar != nullptr) munmap(mBar, mLength);
   mBar = nullptr;
 
-  if (mFd != -1) ::close(mFd);
-  mFd = -1;
+  if (mFd != -1) {
+    if (haveLock())
+      unlock();
+    int rc = ::close(mFd);
+    mFd = -1;
+    if (rc == -1)
+      log (uhal::Error(), "Failed to close file ", uhal::Quote(mPath), "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote (strerror(errno)));
+  }
 }
+
 
 void Axi4Lite::MappedFile::createBuffer(const size_t aNrBytes) {
   if (mBuffer != NULL) {
