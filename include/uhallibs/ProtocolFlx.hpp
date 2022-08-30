@@ -39,8 +39,8 @@
 	@date September 2017
 */
 
-#ifndef _uhal_ProtocolFlx_v0_hpp_
-#define _uhal_ProtocolFlx_v0_hpp_
+#ifndef _DUNEDAQ_UHALLIBS_PROTOCOLFLX_V0_HPP_
+#define _DUNEDAQ_UHALLIBS_PROTOCOLFLX_V0_HPP_
 
 
 #include <deque>                           // for deque
@@ -58,6 +58,9 @@
 #include "uhal/ProtocolIPbus.hpp"
 
 #include "flxcard/FlxCard.h"
+
+#include "uhallibs/ipc/RobustMutex.hpp"
+#include "uhallibs/ipc/SharedMemObject.hpp"
 
 namespace boost
 {
@@ -113,6 +116,8 @@ namespace uhallibs
 
         void write(const uint32_t aAddr, const std::vector<std::pair<const uint8_t*, size_t> >& aData);
 
+        bool haveLock() const { return false; }
+
       private:
         
         static regmap_register_t* find_reg( const std::string& aName );
@@ -124,11 +129,6 @@ namespace uhallibs
         
         FlxCard mFlxCard;
         bool mIsOpen;
-
-        // u_long mWriteAddress;
-        // u_long mWriteData;
-        // u_long mReadAddress;
-        // u_long mReadData;
 
       };
 
@@ -159,6 +159,8 @@ namespace uhallibs
       virtual ~Flx();
 
     private:
+      typedef ipc::RobustMutex IPCMutex_t;
+      typedef std::unique_lock<IPCMutex_t> IPCScopedLock_t;
 
       /**
         Send the IPbus buffer to the target, read back the response and call the packing-protocol's validate function
@@ -174,6 +176,7 @@ namespace uhallibs
       //! Function which tidies up this protocol layer in the event of an exception
       virtual void dispatchExceptionHandler();
 
+      static std::string getSharedMemName(const std::string& aPath, const std::string& aId);
 
       typedef IPbus< 2 , 0 > InnerProtocol;
 
@@ -194,6 +197,9 @@ namespace uhallibs
       //! Set up the connection to the device
       void connect();
 
+      //! Set up the connection to the device
+      void connect( IPCScopedLock_t& );
+
       //! Close the connection to the device
       void disconnect();
 
@@ -206,6 +212,11 @@ namespace uhallibs
       bool mConnected;
 
       Card mDeviceFile;
+
+      ipc::SharedMemObject<IPCMutex_t> mIPCMutex;
+      bool mIPCExternalSessionActive;
+      uint64_t mIPCSessionCount;
+
 
       std::chrono::microseconds mSleepDuration;
 
@@ -225,4 +236,4 @@ namespace uhallibs
 }
 
 
-#endif
+#endif /* _DUNEDAQ_UHALLIBS_PROTOCOLFLX_V0_HPP_ */

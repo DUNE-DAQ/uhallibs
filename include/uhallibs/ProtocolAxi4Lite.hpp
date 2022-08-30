@@ -39,8 +39,8 @@
     @date September 2017
 */
 
-#ifndef _uhal_ProtocolAxi4Lite_hpp_
-#define _uhal_ProtocolAxi4Lite_hpp_
+#ifndef _DUNEDAQ_UHALLIBS_PROTOCOLAXI4LITE_HPP_
+#define _DUNEDAQ_UHALLIBS_PROTOCOLAXI4LITE_HPP_
 
 #include <stddef.h>  // for size_t
 #include <stdint.h>  // for uint32_t, uint8_t
@@ -198,7 +198,7 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
   void connect();
 
   //! Set up the connection to the device
-  void connect(IPCScopedLock_t& );
+  void connect( IPCScopedLock_t& );
 
   //! Close the connection to the device
   void disconnect();
@@ -227,4 +227,4 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
 
 }  // namespace uhal
 
-#endif /* _uhal_ProtocolAxi4Lite_hpp_ */
+#endif /* _DUNEDAQ_UHALLIBS_PROTOCOLAXI4LITE_HPP_ */

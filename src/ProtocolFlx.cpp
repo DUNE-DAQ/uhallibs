@@ -236,12 +236,21 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
 }
 
 
+// Axi4Lite Transport
+std::string Flx::getSharedMemName(const std::string& aPath, const std::string& aId)
+{
+  std::string lSanitizedPath(aPath);
+  std::replace(lSanitizedPath.begin(), lSanitizedPath.end(), '/', ':');
+
+  return "/uhal::ipbusflx-2.0::" + lSanitizedPath + "::" + aId;
+}
 
 
 Flx::Flx ( const std::string& aId, const uhal::URI& aUri ) :
   IPbus< 2 , 0 > ( aId , aUri ),
   mConnected(false),
   mDeviceFile(aUri.mHostname, std::stoul(aUri.mPort), LOCK_NONE),
+  mIPCMutex(getSharedMemName(aUri.mHostname, aUri.mPort)),
   mNumberOfPages(0),
   mPageSize(0),
   mIndexNextPage(0),
@@ -303,7 +312,7 @@ void Flx::dispatchExceptionHandler()
   // log(uhal::Notice(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : closing device files since exception detected");
 
   // ClientInterface::returnBufferToPool ( mReplyQueue );
-  // disconnect();
+  disconnect();
 
   InnerProtocol::dispatchExceptionHandler();
 }
@@ -329,10 +338,23 @@ uint32_t Flx::getMaxReplySize()
 
 void Flx::connect()
 {
+  IPCScopedLock_t lLockGuard(*mIPCMutex);
+  connect(lLockGuard);
+}
+
+
+void Flx::connect(IPCScopedLock_t& aGuard)
+{
+    // Read current value of session counter when reading status info from FPGA
+  // (So that can check whether this info is up-to-date later on, when sending next request packet)
+  mIPCExternalSessionActive = mIPCMutex->isActive() and (not mDeviceFile.haveLock());
+  mIPCSessionCount = mIPCMutex->getCounter();
+
   log ( uhal::Debug() , "flx client is opening device file " , uhal::Quote ( mDeviceFile.getPath() ) );
   std::vector<uint32_t> lValues;
   mDeviceFile.read(0x0, 4, lValues);
   log (uhal::Debug(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
+  aGuard.unlock();
 
   mNumberOfPages = lValues.at(0);
   // mPageSize = std::min(uint32_t(4096), lValues.at(1));
@@ -367,15 +389,25 @@ void Flx::disconnect()
 
 void Flx::write(const std::shared_ptr<uhal::Buffers>& aBuffers)
 {
+  if (not mDeviceFile.haveLock()) {  
+    IPCScopedLock_t lGuard(*mIPCMutex);
+    mIPCMutex->startSession();
+    mIPCSessionCount++;
+
+    if (mIPCExternalSessionActive or (mIPCMutex->getCounter() != mIPCSessionCount)) {
+      connect(lGuard);
+    }
+  }
+
   log (uhal::Info(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : writing ", uhal::Integer(aBuffers->sendCounter() / 4), "-word packet to page ", uhal::Integer(mIndexNextPage), " in ", uhal::Quote(mDeviceFile.getPath()));
 
   const uint32_t lHeaderWord = (0x10000 | (((aBuffers->sendCounter() / 4) - 1) & 0xFFFF));
   std::vector<std::pair<const uint8_t*, size_t> > lDataToWrite;
   lDataToWrite.push_back( std::make_pair(reinterpret_cast<const uint8_t*>(&lHeaderWord), sizeof lHeaderWord) );
   lDataToWrite.push_back( std::make_pair(aBuffers->getSendBuffer(), aBuffers->sendCounter()) );
-  // mDeviceFile.write(mIndexNextPage * 4 * mPageSize, lDataToWrite);
-  mDeviceFile.write(mIndexNextPage * mPageSize, lDataToWrite);
 
+  IPCScopedLock_t lGuard(*mIPCMutex);
+  mDeviceFile.write(mIndexNextPage * mPageSize, lDataToWrite);
   log (uhal::Debug(), "Wrote " , uhal::Integer((aBuffers->sendCounter() / 4) + 1), " 32-bit words at address " , uhal::Integer(mIndexNextPage * 4 * mPageSize), " ... ", PacketFmt(lDataToWrite));
 
   mIndexNextPage = (mIndexNextPage + 1) % mNumberOfPages;
@@ -392,8 +424,9 @@ void Flx::read()
   {
     uint32_t lHwPublishedPageCount = 0x0;
 
+    std::vector<uint32_t> lValues;
     while ( true ) {
-      std::vector<uint32_t> lValues;
+      IPCScopedLock_t lGuard(*mIPCMutex);
       // FIXME : Improve by simply adding dmaWrite method that takes uint32_t ref as argument (or returns uint32_t)
       mDeviceFile.read(0, 4, lValues);
       lHwPublishedPageCount = lValues.at(3);
@@ -428,7 +461,9 @@ void Flx::read()
   lNrWordsToRead += 1;
  
   std::vector<uint32_t> lPageContents;
+  IPCScopedLock_t lGuard(*mIPCMutex);
   mDeviceFile.read(4 + lPageIndexToRead * mPageSize, lNrWordsToRead , lPageContents);
+  lGuard.unlock();
   log (uhal::Debug(), "Read " , uhal::Integer(lNrWordsToRead), " 32-bit words from address " , uhal::Integer(4 + lPageIndexToRead * 4 * mPageSize), " ... ", PacketFmt((const uint8_t*)lPageContents.data(), 4 * lPageContents.size()));
 
   // PART 2 : Transfer to reply buffer
