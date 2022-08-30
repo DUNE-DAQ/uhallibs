@@ -90,23 +90,22 @@ regmap_register_t* Flx::Card::find_reg( const std::string& aName ) {
 }
 
 //-----------------------------------------------------------------------------
-Flx::Card::Card(const std::string& aPath, int aEndpoint, u_int aLockMask) :
-  mPath(aPath),
-  mEndpoint(aEndpoint),
+Flx::Card::Card(const std::string& aDevicePath, u_int aLockMask) :
+  mPath(aDevicePath),
   mLockMask(aLockMask),
   mFlxCard(),
   mIsOpen(false) {
 
-    // Can be made static
-    // mWriteAddress = find_reg("IPBUS_WRITE_ADDRESS")->address;
-    // mWriteData = find_reg("IPBUS_WRITE_DATA")->address;
-    // mReadAddress = find_reg("IPBUS_READ_ADDRESS")->address;
-    // mReadData = find_reg("IPBUS_READ_DATA")->address;
-    // mWriteAddress = 0xC800;
-    // mWriteData = 0xC810;
-    // mReadAddress = 0xC820;
-    // mReadData = 0xC830;
+    const std::string prefix("/dev/flx");
+    if ( aDevicePath.rfind(prefix, 0) != 0 ) {
 
+      exception::FlxInvalidDevice lExc;
+      log(lExc, "Invalid device path ", uhal::Quote(mPath));
+      throw lExc;
+
+    }
+
+    mEndpoint = std::stoi(aDevicePath.substr(prefix.size()).data());
 }
 
 
@@ -237,20 +236,20 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
 
 
 // Axi4Lite Transport
-std::string Flx::getSharedMemName(const std::string& aPath, const std::string& aId)
+std::string Flx::getSharedMemName(const std::string& aPath)
 {
   std::string lSanitizedPath(aPath);
   std::replace(lSanitizedPath.begin(), lSanitizedPath.end(), '/', ':');
 
-  return "/uhal::ipbusflx-2.0::" + lSanitizedPath + "::" + aId;
+  return "/uhal::ipbusflx-2.0::" + lSanitizedPath;
 }
 
 
 Flx::Flx ( const std::string& aId, const uhal::URI& aUri ) :
   IPbus< 2 , 0 > ( aId , aUri ),
   mConnected(false),
-  mDeviceFile(aUri.mHostname, std::stoul(aUri.mPort), LOCK_NONE),
-  mIPCMutex(getSharedMemName(aUri.mHostname, aUri.mPort)),
+  mDeviceFile(aUri.mHostname, LOCK_NONE),
+  mIPCMutex(getSharedMemName(aUri.mHostname)),
   mNumberOfPages(0),
   mPageSize(0),
   mIndexNextPage(0),
@@ -430,6 +429,7 @@ void Flx::read()
       // FIXME : Improve by simply adding dmaWrite method that takes uint32_t ref as argument (or returns uint32_t)
       mDeviceFile.read(0, 4, lValues);
       lHwPublishedPageCount = lValues.at(3);
+      // log (uhal::Info(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
       log (uhal::Debug(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
 
       if (lHwPublishedPageCount != mPublishedReplyPageCount) {
@@ -447,6 +447,7 @@ void Flx::read()
       log(uhal::Debug(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Trying to read page index ", uhal::Integer(lPageIndexToRead), " = count ", uhal::Integer(mReadReplyPageCount+1), "; published page count is ", uhal::Integer(lHwPublishedPageCount), "; sleeping for ", mSleepDuration.count(), "us");
       if (mSleepDuration > std::chrono::microseconds(0))
         std::this_thread::sleep_for( mSleepDuration );
+      lValues.clear();
     }
 
     log(uhal::Info(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Reading page ", uhal::Integer(lPageIndexToRead), " (published count ", uhal::Integer(lHwPublishedPageCount), ", surpasses required, ", uhal::Integer(mReadReplyPageCount + 1), ")");

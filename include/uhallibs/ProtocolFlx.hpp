@@ -79,9 +79,15 @@ namespace uhallibs
   {
     //! Exception class to handle the case in which the PCIe connection timed out.
     UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+      FlxInvalidDevice, 
+      uhal::exception::ClientTimeout, 
+      "Exception class to handle the case in which the Felix device is invalid."
+    )
+    //! Exception class to handle the case in which the PCIe connection timed out.
+    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
       FlxTimeout, 
       uhal::exception::ClientTimeout, 
-      "Exception class to handle the case in which the PCIe connection timed out."
+      "Exception class to handle the case in which the Felix connection timed out."
     )
     //! Exception class to handle a failure to read from the specified device files during initialisation
     UHAL_DEFINE_DERIVED_EXCEPTION_CLASS (
@@ -103,13 +109,15 @@ namespace uhallibs
     private:
       class Card {
       public:
-        Card(const std::string& aPath, int aEndpoint, u_int aLockMask);
+        Card(const std::string& aPath, u_int aLockMask);
         ~Card();
 
         const std::string& getPath() const;
+
         int getEndpoint() const;
 
         void open();
+
         void close();
 
         void read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<uint32_t>& aValues);
@@ -176,7 +184,7 @@ namespace uhallibs
       //! Function which tidies up this protocol layer in the event of an exception
       virtual void dispatchExceptionHandler();
 
-      static std::string getSharedMemName(const std::string& aPath, const std::string& aId);
+      static std::string getSharedMemName(const std::string& aPath);
 
       typedef IPbus< 2 , 0 > InnerProtocol;
 
