@@ -114,7 +114,7 @@ namespace uhallibs
 
         const std::string& getPath() const;
 
-        int getEndpoint() const;
+        int getDeviceId() const;
 
         void open();
 
@@ -124,7 +124,11 @@ namespace uhallibs
 
         void write(const uint32_t aAddr, const std::vector<std::pair<const uint8_t*, size_t> >& aData);
 
-        bool haveLock() const { return false; }
+        bool haveLock() const;
+
+        void lock();
+
+        void unlock();
 
       private:
         
@@ -132,11 +136,15 @@ namespace uhallibs
 
 
         std::string mPath;
-        int mEndpoint;
+        int mDeviceId;
         u_int mLockMask;
         
         FlxCard mFlxCard;
         bool mIsOpen;
+
+        int mFd;
+        bool mLocked;
+        
 
       };
 

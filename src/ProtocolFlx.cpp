@@ -50,6 +50,7 @@
 #include <iostream>                                         // for operator<<
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <stdlib.h>                                         // for size_t, free
 #include <string.h>                                         // for memcpy
 #include <unistd.h>
@@ -105,7 +106,16 @@ Flx::Card::Card(const std::string& aDevicePath, u_int aLockMask) :
 
     }
 
-    mEndpoint = std::stoi(aDevicePath.substr(prefix.size()).data());
+    std::string device_id_str = aDevicePath.substr(prefix.size()).data();
+    try {
+      mDeviceId = std::stoi(device_id_str);
+    } catch (std::invalid_argument const& ex) {
+
+      exception::FlxInvalidDevice lExc;
+      log(lExc, "Invalid device id ", uhal::Quote(mPath));
+      throw lExc;
+
+    }
 }
 
 
@@ -117,7 +127,7 @@ Flx::Card::~Card() {
 //-----------------------------------------------------------------------------
 void Flx::Card::open() {
   
-  log(uhal::Debug(), "Flx::Card client Opening felix endpoint ", mEndpoint, " on ", mPath);
+  log(uhal::Debug(), "Flx::Card client Opening felix endpoint ", mDeviceId, " on ", mPath);
 
   if( access( mPath.c_str(), F_OK ) == -1 ) {
 
@@ -126,7 +136,12 @@ void Flx::Card::open() {
     throw lExc;
   }
 
-  mFlxCard.card_open(mEndpoint, mLockMask);
+  mFd = ::open(mPath.c_str(), O_RDWR);
+  if (mFd < 0) {
+    return;
+  }
+
+  mFlxCard.card_open(mDeviceId, mLockMask);
 
   mIsOpen = true;
 }
@@ -137,6 +152,15 @@ void Flx::Card::close() {
 
   if (mIsOpen)
     mFlxCard.card_close();
+
+  if (mFd != -1) {
+    if (haveLock())
+      unlock();
+    int rc = ::close(mFd);
+    mFd = -1;
+    if (rc == -1)
+      log (uhal::Error(), "Failed to close file ", uhal::Quote(mPath), "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote (strerror(errno)));
+  }
 }
 
 
@@ -146,8 +170,8 @@ const std::string& Flx::Card::getPath() const {
 }
 
 //-----------------------------------------------------------------------------
-int Flx::Card::getEndpoint() const {
-  return mEndpoint;
+int Flx::Card::getDeviceId() const {
+  return mDeviceId;
 }
 
 //-----------------------------------------------------------------------------
@@ -156,12 +180,8 @@ void Flx::Card::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<
   if (!mIsOpen)
     open();
 
-  // BBB uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
   flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
   
-  //BBB uint64_t *lReadAddrPtr = (uint64_t *)(lBaseAddr + mReadAddress);
-  //BBB uint64_t *lReadDataPtr = (uint64_t *)(lBaseAddr + mReadData);
-
   // +1 is ceiling rounding in integers
   uint32_t lNrReads64b = (aNrWords+1)/2;
   uint32_t lAddr = aAddr/2;
@@ -234,8 +254,29 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   free(allocated);
 }
 
+bool Flx::Card::haveLock() const { return mLocked; }
 
-// Axi4Lite Transport
+
+void Flx::Card::lock() {
+  if (flock(mFd, LOCK_EX) == -1) {
+    ipc::exception::MutexError lExc;
+    log(lExc, "Failed to lock device file ", uhal::Quote(mPath),
+        "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote(strerror(errno)));
+    throw lExc;
+  }
+  mLocked = true;
+}
+
+void Flx::Card::unlock() {
+  if (flock(mFd, LOCK_UN) == -1) {
+    log(uhal::Warning(), "Failed to unlock device file ", uhal::Quote(mPath),
+        "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote(strerror(errno)));
+  } else
+    mLocked = false;
+}
+
+
+// Flx Transport
 std::string Flx::getSharedMemName(const std::string& aPath)
 {
   std::string lSanitizedPath(aPath);
@@ -302,6 +343,11 @@ void Flx::Flush( )
   while ( !mReplyQueue.empty() )
     read();
 
+  mDeviceFile.unlock();
+
+  IPCScopedLock_t lLockGuard(*mIPCMutex);
+  mIPCMutex->endSession();
+
 }
 
 
@@ -311,6 +357,9 @@ void Flx::dispatchExceptionHandler()
   // log(uhal::Notice(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : closing device files since exception detected");
 
   // ClientInterface::returnBufferToPool ( mReplyQueue );
+ 
+  mDeviceFile.unlock();
+
   disconnect();
 
   InnerProtocol::dispatchExceptionHandler();
@@ -389,6 +438,8 @@ void Flx::disconnect()
 void Flx::write(const std::shared_ptr<uhal::Buffers>& aBuffers)
 {
   if (not mDeviceFile.haveLock()) {  
+    mDeviceFile.lock();
+
     IPCScopedLock_t lGuard(*mIPCMutex);
     mIPCMutex->startSession();
     mIPCSessionCount++;
