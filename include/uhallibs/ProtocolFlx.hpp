@@ -39,8 +39,8 @@
 	@date September 2017
 */
 
-#ifndef _uhal_ProtocolFlx_v0_hpp_
-#define _uhal_ProtocolFlx_v0_hpp_
+#ifndef _DUNEDAQ_UHALLIBS_PROTOCOLFLX_V0_HPP_
+#define _DUNEDAQ_UHALLIBS_PROTOCOLFLX_V0_HPP_
 
 
 #include <deque>                           // for deque
@@ -59,6 +59,9 @@
 
 #include "flxcard/FlxCard.h"
 
+#include "uhallibs/ipc/RobustMutex.hpp"
+#include "uhallibs/ipc/SharedMemObject.hpp"
+
 namespace boost
 {
   template <class Y> class shared_ptr;
@@ -76,9 +79,15 @@ namespace uhallibs
   {
     //! Exception class to handle the case in which the PCIe connection timed out.
     UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
+      FlxInvalidDevice, 
+      uhal::exception::ClientTimeout, 
+      "Exception class to handle the case in which the Felix device is invalid."
+    )
+    //! Exception class to handle the case in which the PCIe connection timed out.
+    UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
       FlxTimeout, 
       uhal::exception::ClientTimeout, 
-      "Exception class to handle the case in which the PCIe connection timed out."
+      "Exception class to handle the case in which the Felix connection timed out."
     )
     //! Exception class to handle a failure to read from the specified device files during initialisation
     UHAL_DEFINE_DERIVED_EXCEPTION_CLASS (
@@ -100,18 +109,26 @@ namespace uhallibs
     private:
       class Card {
       public:
-        Card(const std::string& aPath, int aEndpoint, u_int aLockMask);
+        Card(const std::string& aPath, u_int aLockMask);
         ~Card();
 
         const std::string& getPath() const;
-        int getEndpoint() const;
+
+        int getDeviceId() const;
 
         void open();
+
         void close();
 
         void read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<uint32_t>& aValues);
 
         void write(const uint32_t aAddr, const std::vector<std::pair<const uint8_t*, size_t> >& aData);
+
+        bool haveLock() const;
+
+        void lock();
+
+        void unlock();
 
       private:
         
@@ -119,16 +136,15 @@ namespace uhallibs
 
 
         std::string mPath;
-        int mEndpoint;
+        int mDeviceId;
         u_int mLockMask;
         
         FlxCard mFlxCard;
         bool mIsOpen;
 
-        // u_long mWriteAddress;
-        // u_long mWriteData;
-        // u_long mReadAddress;
-        // u_long mReadData;
+        int mFd;
+        bool mLocked;
+        
 
       };
 
@@ -159,6 +175,8 @@ namespace uhallibs
       virtual ~Flx();
 
     private:
+      typedef ipc::RobustMutex IPCMutex_t;
+      typedef std::unique_lock<IPCMutex_t> IPCScopedLock_t;
 
       /**
         Send the IPbus buffer to the target, read back the response and call the packing-protocol's validate function
@@ -174,6 +192,7 @@ namespace uhallibs
       //! Function which tidies up this protocol layer in the event of an exception
       virtual void dispatchExceptionHandler();
 
+      static std::string getSharedMemName(const std::string& aPath);
 
       typedef IPbus< 2 , 0 > InnerProtocol;
 
@@ -194,6 +213,9 @@ namespace uhallibs
       //! Set up the connection to the device
       void connect();
 
+      //! Set up the connection to the device
+      void connect( IPCScopedLock_t& );
+
       //! Close the connection to the device
       void disconnect();
 
@@ -206,6 +228,11 @@ namespace uhallibs
       bool mConnected;
 
       Card mDeviceFile;
+
+      ipc::SharedMemObject<IPCMutex_t> mIPCMutex;
+      bool mIPCExternalSessionActive;
+      uint64_t mIPCSessionCount;
+
 
       std::chrono::microseconds mSleepDuration;
 
@@ -225,4 +252,4 @@ namespace uhallibs
 }
 
 
-#endif
+#endif /* _DUNEDAQ_UHALLIBS_PROTOCOLFLX_V0_HPP_ */

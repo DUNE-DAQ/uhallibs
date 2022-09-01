@@ -50,6 +50,7 @@
 #include <iostream>                                         // for operator<<
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <stdlib.h>                                         // for size_t, free
 #include <string.h>                                         // for memcpy
 #include <unistd.h>
@@ -90,23 +91,31 @@ regmap_register_t* Flx::Card::find_reg( const std::string& aName ) {
 }
 
 //-----------------------------------------------------------------------------
-Flx::Card::Card(const std::string& aPath, int aEndpoint, u_int aLockMask) :
-  mPath(aPath),
-  mEndpoint(aEndpoint),
+Flx::Card::Card(const std::string& aDevicePath, u_int aLockMask) :
+  mPath(aDevicePath),
   mLockMask(aLockMask),
   mFlxCard(),
   mIsOpen(false) {
 
-    // Can be made static
-    // mWriteAddress = find_reg("IPBUS_WRITE_ADDRESS")->address;
-    // mWriteData = find_reg("IPBUS_WRITE_DATA")->address;
-    // mReadAddress = find_reg("IPBUS_READ_ADDRESS")->address;
-    // mReadData = find_reg("IPBUS_READ_DATA")->address;
-    // mWriteAddress = 0xC800;
-    // mWriteData = 0xC810;
-    // mReadAddress = 0xC820;
-    // mReadData = 0xC830;
+    const std::string prefix("/dev/flx");
+    if ( aDevicePath.rfind(prefix, 0) != 0 ) {
 
+      exception::FlxInvalidDevice lExc;
+      log(lExc, "Invalid device path ", uhal::Quote(mPath));
+      throw lExc;
+
+    }
+
+    std::string device_id_str = aDevicePath.substr(prefix.size()).data();
+    try {
+      mDeviceId = std::stoi(device_id_str);
+    } catch (std::invalid_argument const& ex) {
+
+      exception::FlxInvalidDevice lExc;
+      log(lExc, "Invalid device id ", uhal::Quote(mPath));
+      throw lExc;
+
+    }
 }
 
 
@@ -118,7 +127,7 @@ Flx::Card::~Card() {
 //-----------------------------------------------------------------------------
 void Flx::Card::open() {
   
-  log(uhal::Debug(), "Flx::Card client Opening felix endpoint ", mEndpoint, " on ", mPath);
+  log(uhal::Debug(), "Flx::Card client Opening felix endpoint ", mDeviceId, " on ", mPath);
 
   if( access( mPath.c_str(), F_OK ) == -1 ) {
 
@@ -127,7 +136,12 @@ void Flx::Card::open() {
     throw lExc;
   }
 
-  mFlxCard.card_open(mEndpoint, mLockMask);
+  mFd = ::open(mPath.c_str(), O_RDWR);
+  if (mFd < 0) {
+    return;
+  }
+
+  mFlxCard.card_open(mDeviceId, mLockMask);
 
   mIsOpen = true;
 }
@@ -138,6 +152,15 @@ void Flx::Card::close() {
 
   if (mIsOpen)
     mFlxCard.card_close();
+
+  if (mFd != -1) {
+    if (haveLock())
+      unlock();
+    int rc = ::close(mFd);
+    mFd = -1;
+    if (rc == -1)
+      log (uhal::Error(), "Failed to close file ", uhal::Quote(mPath), "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote (strerror(errno)));
+  }
 }
 
 
@@ -147,8 +170,8 @@ const std::string& Flx::Card::getPath() const {
 }
 
 //-----------------------------------------------------------------------------
-int Flx::Card::getEndpoint() const {
-  return mEndpoint;
+int Flx::Card::getDeviceId() const {
+  return mDeviceId;
 }
 
 //-----------------------------------------------------------------------------
@@ -157,12 +180,8 @@ void Flx::Card::read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<
   if (!mIsOpen)
     open();
 
-  // BBB uint64_t lBaseAddr = mFlxCard.openBackDoor(2);
   flxcard_bar2_regs_t *bar2 = (flxcard_bar2_regs_t *) mFlxCard.openBackDoor( 2 );
   
-  //BBB uint64_t *lReadAddrPtr = (uint64_t *)(lBaseAddr + mReadAddress);
-  //BBB uint64_t *lReadDataPtr = (uint64_t *)(lBaseAddr + mReadData);
-
   // +1 is ceiling rounding in integers
   uint32_t lNrReads64b = (aNrWords+1)/2;
   uint32_t lAddr = aAddr/2;
@@ -235,13 +254,43 @@ void Flx::Card::write(const uint32_t aAddr, const std::vector<std::pair<const ui
   free(allocated);
 }
 
+bool Flx::Card::haveLock() const { return mLocked; }
 
+
+void Flx::Card::lock() {
+  if (flock(mFd, LOCK_EX) == -1) {
+    ipc::exception::MutexError lExc;
+    log(lExc, "Failed to lock device file ", uhal::Quote(mPath),
+        "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote(strerror(errno)));
+    throw lExc;
+  }
+  mLocked = true;
+}
+
+void Flx::Card::unlock() {
+  if (flock(mFd, LOCK_UN) == -1) {
+    log(uhal::Warning(), "Failed to unlock device file ", uhal::Quote(mPath),
+        "; errno=", uhal::Integer(errno), ", meaning ", uhal::Quote(strerror(errno)));
+  } else
+    mLocked = false;
+}
+
+
+// Flx Transport
+std::string Flx::getSharedMemName(const std::string& aPath)
+{
+  std::string lSanitizedPath(aPath);
+  std::replace(lSanitizedPath.begin(), lSanitizedPath.end(), '/', ':');
+
+  return "/uhal::ipbusflx-2.0::" + lSanitizedPath;
+}
 
 
 Flx::Flx ( const std::string& aId, const uhal::URI& aUri ) :
   IPbus< 2 , 0 > ( aId , aUri ),
   mConnected(false),
-  mDeviceFile(aUri.mHostname, std::stoul(aUri.mPort), LOCK_NONE),
+  mDeviceFile(aUri.mHostname, LOCK_NONE),
+  mIPCMutex(getSharedMemName(aUri.mHostname)),
   mNumberOfPages(0),
   mPageSize(0),
   mIndexNextPage(0),
@@ -294,6 +343,11 @@ void Flx::Flush( )
   while ( !mReplyQueue.empty() )
     read();
 
+  mDeviceFile.unlock();
+
+  IPCScopedLock_t lLockGuard(*mIPCMutex);
+  mIPCMutex->endSession();
+
 }
 
 
@@ -303,7 +357,10 @@ void Flx::dispatchExceptionHandler()
   // log(uhal::Notice(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : closing device files since exception detected");
 
   // ClientInterface::returnBufferToPool ( mReplyQueue );
-  // disconnect();
+ 
+  mDeviceFile.unlock();
+
+  disconnect();
 
   InnerProtocol::dispatchExceptionHandler();
 }
@@ -329,10 +386,23 @@ uint32_t Flx::getMaxReplySize()
 
 void Flx::connect()
 {
+  IPCScopedLock_t lLockGuard(*mIPCMutex);
+  connect(lLockGuard);
+}
+
+
+void Flx::connect(IPCScopedLock_t& aGuard)
+{
+    // Read current value of session counter when reading status info from FPGA
+  // (So that can check whether this info is up-to-date later on, when sending next request packet)
+  mIPCExternalSessionActive = mIPCMutex->isActive() and (not mDeviceFile.haveLock());
+  mIPCSessionCount = mIPCMutex->getCounter();
+
   log ( uhal::Debug() , "flx client is opening device file " , uhal::Quote ( mDeviceFile.getPath() ) );
   std::vector<uint32_t> lValues;
   mDeviceFile.read(0x0, 4, lValues);
   log (uhal::Debug(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
+  aGuard.unlock();
 
   mNumberOfPages = lValues.at(0);
   // mPageSize = std::min(uint32_t(4096), lValues.at(1));
@@ -367,15 +437,27 @@ void Flx::disconnect()
 
 void Flx::write(const std::shared_ptr<uhal::Buffers>& aBuffers)
 {
+  if (not mDeviceFile.haveLock()) {  
+    mDeviceFile.lock();
+
+    IPCScopedLock_t lGuard(*mIPCMutex);
+    mIPCMutex->startSession();
+    mIPCSessionCount++;
+
+    if (mIPCExternalSessionActive or (mIPCMutex->getCounter() != mIPCSessionCount)) {
+      connect(lGuard);
+    }
+  }
+
   log (uhal::Info(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : writing ", uhal::Integer(aBuffers->sendCounter() / 4), "-word packet to page ", uhal::Integer(mIndexNextPage), " in ", uhal::Quote(mDeviceFile.getPath()));
 
   const uint32_t lHeaderWord = (0x10000 | (((aBuffers->sendCounter() / 4) - 1) & 0xFFFF));
   std::vector<std::pair<const uint8_t*, size_t> > lDataToWrite;
   lDataToWrite.push_back( std::make_pair(reinterpret_cast<const uint8_t*>(&lHeaderWord), sizeof lHeaderWord) );
   lDataToWrite.push_back( std::make_pair(aBuffers->getSendBuffer(), aBuffers->sendCounter()) );
-  // mDeviceFile.write(mIndexNextPage * 4 * mPageSize, lDataToWrite);
-  mDeviceFile.write(mIndexNextPage * mPageSize, lDataToWrite);
 
+  IPCScopedLock_t lGuard(*mIPCMutex);
+  mDeviceFile.write(mIndexNextPage * mPageSize, lDataToWrite);
   log (uhal::Debug(), "Wrote " , uhal::Integer((aBuffers->sendCounter() / 4) + 1), " 32-bit words at address " , uhal::Integer(mIndexNextPage * 4 * mPageSize), " ... ", PacketFmt(lDataToWrite));
 
   mIndexNextPage = (mIndexNextPage + 1) % mNumberOfPages;
@@ -392,11 +474,13 @@ void Flx::read()
   {
     uint32_t lHwPublishedPageCount = 0x0;
 
+    std::vector<uint32_t> lValues;
     while ( true ) {
-      std::vector<uint32_t> lValues;
+      IPCScopedLock_t lGuard(*mIPCMutex);
       // FIXME : Improve by simply adding dmaWrite method that takes uint32_t ref as argument (or returns uint32_t)
       mDeviceFile.read(0, 4, lValues);
       lHwPublishedPageCount = lValues.at(3);
+      // log (uhal::Info(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
       log (uhal::Debug(), "Read status info from addr 0 (", uhal::Integer(lValues.at(0)), ", ", uhal::Integer(lValues.at(1)), ", ", uhal::Integer(lValues.at(2)), ", ", uhal::Integer(lValues.at(3)), "): ", PacketFmt((const uint8_t*)lValues.data(), 4 * lValues.size()));
 
       if (lHwPublishedPageCount != mPublishedReplyPageCount) {
@@ -414,6 +498,7 @@ void Flx::read()
       log(uhal::Debug(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Trying to read page index ", uhal::Integer(lPageIndexToRead), " = count ", uhal::Integer(mReadReplyPageCount+1), "; published page count is ", uhal::Integer(lHwPublishedPageCount), "; sleeping for ", mSleepDuration.count(), "us");
       if (mSleepDuration > std::chrono::microseconds(0))
         std::this_thread::sleep_for( mSleepDuration );
+      lValues.clear();
     }
 
     log(uhal::Info(), "flx client ", uhal::Quote(id()), " (URI: ", uhal::Quote(uri()), ") : Reading page ", uhal::Integer(lPageIndexToRead), " (published count ", uhal::Integer(lHwPublishedPageCount), ", surpasses required, ", uhal::Integer(mReadReplyPageCount + 1), ")");
@@ -428,7 +513,9 @@ void Flx::read()
   lNrWordsToRead += 1;
  
   std::vector<uint32_t> lPageContents;
+  IPCScopedLock_t lGuard(*mIPCMutex);
   mDeviceFile.read(4 + lPageIndexToRead * mPageSize, lNrWordsToRead , lPageContents);
+  lGuard.unlock();
   log (uhal::Debug(), "Read " , uhal::Integer(lNrWordsToRead), " 32-bit words from address " , uhal::Integer(4 + lPageIndexToRead * 4 * mPageSize), " ... ", PacketFmt((const uint8_t*)lPageContents.data(), 4 * lPageContents.size()));
 
   // PART 2 : Transfer to reply buffer
