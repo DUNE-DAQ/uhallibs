@@ -2,7 +2,7 @@
 
 Low-level ipbus-over-axi4lite test
 
-Small test application to test low-level ipbus communication over axi4 lite using the 
+Small test application to test low-level ipbus communication over axi4 lite using the
 uhal::Axi4Lite::MappedFile and manually injecting read and write ipbus packets.
 
 **/
@@ -23,10 +23,11 @@ uhal::Axi4Lite::MappedFile and manually injecting read and write ipbus packets.
 #include "uhal/log/exception.hpp"
 #include "uhal/log/log.hpp"
 
-
 #include "uhallibs/ProtocolAxi4Lite.hpp"
 
-int main(int /* argc */, char const* /* argv[] */) {
+int
+main(int /* argc */, char const* /* argv[] */)
+{
   /* code */
 
   std::string lBarFile = "/sys/bus/pci/devices/0000:41:00.0/resource0";
@@ -51,9 +52,8 @@ int main(int /* argc */, char const* /* argv[] */) {
   f.read(0, 4, lStats);
 
   for (uint64_t i(0); i < lStats.size(); ++i) {
-    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i
-              << "   " << std::setw(8) << std::setfill('0') << lStats[i]
-              << std::endl;
+    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i << "   " << std::setw(8)
+              << std::setfill('0') << lStats[i] << std::endl;
   }
 
   n_pages = lStats[0];
@@ -70,25 +70,19 @@ int main(int /* argc */, char const* /* argv[] */) {
   f.close();
 
   // Re-open the interface file
-  uint32_t map_size = n_pages*page_size+4;
+  uint32_t map_size = n_pages * page_size + 4;
   f.setLength(map_size);
   f.open();
   f.lock();
 
   uint64_t write_base = next_write_index * page_size;
-  std::cout << "write base : 0x" << std::hex << std::setw(8)
-            << std::setfill('0') << write_base << std::endl;
+  std::cout << "write base : 0x" << std::hex << std::setw(8) << std::setfill('0') << write_base << std::endl;
 
-  std::vector<uint32_t> lWriteVal = {
-    0x00010002,
-    0x200001F0,
-    0x2001010F,
-    0x00000001};
+  std::vector<uint32_t> lWriteVal = { 0x00010002, 0x200001F0, 0x2001010F, 0x00000001 };
 
   for (uint64_t i(0); i < lWriteVal.size(); ++i) {
-    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i+write_base
-              << "   " << std::setw(8) << std::setfill('0') << lWriteVal[i]
-              << std::endl;
+    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i + write_base << "   " << std::setw(8)
+              << std::setfill('0') << lWriteVal[i] << std::endl;
   }
 
   f.write(write_base, lWriteVal);
@@ -99,9 +93,8 @@ int main(int /* argc */, char const* /* argv[] */) {
   f.read(0, 4, lStats);
 
   for (uint64_t i(0); i < lStats.size(); ++i) {
-    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i
-              << "   " << std::setw(8) << std::setfill('0') << lStats[i]
-              << std::endl;
+    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i << "   " << std::setw(8)
+              << std::setfill('0') << lStats[i] << std::endl;
   }
 
   n_pages = lStats[0];
@@ -117,16 +110,14 @@ int main(int /* argc */, char const* /* argv[] */) {
 
   const size_t next_read_index = (next_write_index - 1 + n_pages) % n_pages;
   const size_t read_base = 4 + (next_read_index * page_size);
-  std::cout << "read base : 0x" << std::hex << std::setw(8) << std::setfill('0')
-            << read_base << std::endl;
+  std::cout << "read base : 0x" << std::hex << std::setw(8) << std::setfill('0') << read_base << std::endl;
 
   std::vector<uint32_t> lReadVal;
   f.read(read_base, 8, lReadVal);
 
   for (uint64_t i(0); i < lReadVal.size(); ++i) {
-    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i+read_base
-              << "   " << std::setw(8) << std::setfill('0') << lReadVal[i]
-              << std::endl;
+    std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << i + read_base << "   " << std::setw(8)
+              << std::setfill('0') << lReadVal[i] << std::endl;
   }
 
   f.unlock();
