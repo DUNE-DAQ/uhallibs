@@ -6,17 +6,16 @@
 /*                                                                 */
 /**C 2015 Ecosoft - Made from at least 80% recycled source code*****/
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "cmem_rcc/cmem_rcc.h"
 #include "flxcard/FlxCard.h"
 #include "flxcard/FlxException.h"
 
-
-#define APPLICATION_NAME    "flx-dma-test"
+#define APPLICATION_NAME "flx-dma-test"
 #define BUFSIZE (1024)
 #define DMA_ID (0)
 
@@ -27,13 +26,12 @@
 #define BF_GBT_EMU_ENA_TOFRONTEND BF_FE_EMU_ENA_EMU_TOFRONTEND
 #endif
 
-
-//Globals
+// Globals
 FlxCard flxCard;
 
-
 /*****************/
-void display_help()
+void
+display_help()
 /*****************/
 {
   printf("Usage: %s [OPTIONS]\n", APPLICATION_NAME);
@@ -43,36 +41,33 @@ void display_help()
   printf("  -h             Display help.\n");
 }
 
-
 /********************************/
-void dump_buffer(u_long virt_addr)
+void
+dump_buffer(u_long virt_addr)
 /********************************/
 {
-  u_char *buf = (u_char *)virt_addr;
+  u_char* buf = (u_char*)virt_addr;
   int i;
 
-  for(i = 0; i < BUFSIZE; i++)
-  {
-    if(i % 32 == 0)
+  for (i = 0; i < BUFSIZE; i++) {
+    if (i % 32 == 0)
       printf("\n0x  ");
     printf("%02x ", *buf++);
   }
   printf("\n");
 }
 
-
 /*****************************/
-int main(int argc, char **argv)
+int
+main(int argc, char** argv)
 /*****************************/
 {
   int i, loop, ret, device_number = 0, opt, handle;
   u_long baraddr0, vaddr, paddr, board_id, bsize, opt_emu_ena_to_host, opt_emu_ena_to_frontend;
-  flxcard_bar0_regs_t *bar0;
+  flxcard_bar0_regs_t* bar0;
 
-  while((opt = getopt(argc, argv, "hd:D:V")) != -1)
-  {
-    switch (opt)
-    {
+  while ((opt = getopt(argc, argv, "hd:D:V")) != -1) {
+    switch (opt) {
       case 'd':
         device_number = atoi(optarg);
         break;
@@ -83,40 +78,40 @@ int main(int argc, char **argv)
         break;
 
       default:
-        fprintf(stderr, "Usage: %s COMMAND [OPTIONS]\nTry %s -h for more information.\n", APPLICATION_NAME, APPLICATION_NAME);
+        fprintf(
+          stderr, "Usage: %s COMMAND [OPTIONS]\nTry %s -h for more information.\n", APPLICATION_NAME, APPLICATION_NAME);
         exit(-1);
     }
   }
 
-  try
-  {
+  try {
     flxCard.card_open(device_number, 0);
 
     // save current state
-    opt_emu_ena_to_host     = flxCard.cfg_get_option(BF_GBT_EMU_ENA_TOHOST);
+    opt_emu_ena_to_host = flxCard.cfg_get_option(BF_GBT_EMU_ENA_TOHOST);
     opt_emu_ena_to_frontend = flxCard.cfg_get_option(BF_GBT_EMU_ENA_TOFRONTEND);
 
-    for(loop = 0; loop < 8; loop++)
+    for (loop = 0; loop < 8; loop++)
       flxCard.dma_stop(loop);
 
     flxCard.dma_reset();
     flxCard.soft_reset();
-    //flxCard.dma_fifo_flush(); MJ: Method disabled (requsted by Frans)
+    // flxCard.dma_fifo_flush(); MJ: Method disabled (requsted by Frans)
     flxCard.cfg_set_option(BF_GBT_EMU_ENA_TOFRONTEND, 0);
     flxCard.cfg_set_option(BF_GBT_EMU_ENA_TOHOST, 1);
 
-    board_id = flxCard.cfg_get_option(REG_GIT_TAG); 
+    board_id = flxCard.cfg_get_option(REG_GIT_TAG);
 
     u_long loop;
     char git_tag[8];
-    for(loop = 0; loop < 8; loop++)
-      git_tag[loop] = (board_id >> (8 * loop)) & 0xff;      
-    printf("Board ID (GIT): %s\n", git_tag);   
+    for (loop = 0; loop < 8; loop++)
+      git_tag[loop] = (board_id >> (8 * loop)) & 0xff;
+    printf("Board ID (GIT): %s\n", git_tag);
 
     ret = CMEM_Open();
     bsize = BUFSIZE;
     if (!ret)
-      ret = CMEM_SegmentAllocate(bsize, (char *)"FlxThroughput", &handle);
+      ret = CMEM_SegmentAllocate(bsize, (char*)"FlxThroughput", &handle);
 
     if (!ret)
       ret = CMEM_SegmentPhysicalAddress(handle, &paddr);
@@ -124,8 +119,7 @@ int main(int argc, char **argv)
     if (!ret)
       ret = CMEM_SegmentVirtualAddress(handle, &vaddr);
 
-    if (ret)
-    {
+    if (ret) {
       rcc_error_print(stdout, ret);
       exit(-1);
     }
@@ -136,10 +130,10 @@ int main(int argc, char **argv)
     dump_buffer(vaddr);
 
     flxCard.dma_to_host(DMA_ID, paddr, BUFSIZE, FLX_DMA_WRAPAROUND);
-    //flxCard.dma_wait(DMA_ID);
+    // flxCard.dma_wait(DMA_ID);
 
     baraddr0 = flxCard.openBackDoor(0);
-    bar0 = (flxcard_bar0_regs_t *)baraddr0;
+    bar0 = (flxcard_bar0_regs_t*)baraddr0;
 
     printf("Start Ptr:   0x%016lx\n", bar0->DMA_DESC[0].start_address);
     printf("End Ptr:     0x%016lx\n", bar0->DMA_DESC[0].end_address);
@@ -153,16 +147,18 @@ int main(int argc, char **argv)
     printf("Even Addr. DMA  DMA1: 0x%lx\n", bar0->DMA_DESC_STATUS[1].even_addr_dma);
     printf("Even Addr. PC   DMA1: 0x%lx\n", bar0->DMA_DESC_STATUS[1].even_addr_pc);
 
-    printf("Start Addr: %016lx\nEnd Addr:  %016lx\nRead Ptr: %016lx\n", bar0->DMA_DESC[0].start_address, bar0->DMA_DESC[0].end_address, bar0->DMA_DESC[0].read_ptr);
+    printf("Start Addr: %016lx\nEnd Addr:  %016lx\nRead Ptr: %016lx\n",
+           bar0->DMA_DESC[0].start_address,
+           bar0->DMA_DESC[0].end_address,
+           bar0->DMA_DESC[0].read_ptr);
 
     printf("\nBuffer after DMA write:\n");
     dump_buffer(vaddr);
 
-    for(i = 0; ; i++)
-    {
+    for (i = 0;; i++) {
       printf("\n--------------------\n  %d:\n", i);
       flxCard.dma_advance_ptr(DMA_ID, paddr, BUFSIZE, 512);
-      //flxCard.dma_wait(DMA_ID);
+      // flxCard.dma_wait(DMA_ID);
 
       printf("Read Ptr:    0x%016lx\n", bar0->DMA_DESC[0].read_ptr);
       printf("Write Ptr:   0x%016lx\n", bar0->DMA_DESC_STATUS[0].current_address);
@@ -185,10 +181,8 @@ int main(int argc, char **argv)
       rcc_error_print(stdout, ret);
 
     flxCard.card_close();
-  }
-  catch(FlxException &ex)
-  {
-    std::cout << "ERROR. Exception thrown: " << ex.what() << std:: endl;
+  } catch (FlxException& ex) {
+    std::cout << "ERROR. Exception thrown: " << ex.what() << std::endl;
     exit(-1);
   }
 

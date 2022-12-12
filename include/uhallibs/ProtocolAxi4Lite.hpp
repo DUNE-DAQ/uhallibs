@@ -42,16 +42,16 @@
 #ifndef _DUNEDAQ_UHALLIBS_PROTOCOLAXI4LITE_HPP_
 #define _DUNEDAQ_UHALLIBS_PROTOCOLAXI4LITE_HPP_
 
-#include <stddef.h>  // for size_t
-#include <stdint.h>  // for uint32_t, uint8_t
+#include <stddef.h> // for size_t
+#include <stdint.h> // for uint32_t, uint8_t
 
 #include <chrono>
-#include <deque>  // for deque
+#include <deque> // for deque
 #include <memory>
 #include <mutex>
-#include <string>   // for string
-#include <utility>  // for pair
-#include <vector>   // for vector
+#include <string>  // for string
+#include <utility> // for pair
+#include <vector>  // for vector
 
 #include "uhal/ClientInterface.hpp"
 #include "uhal/ProtocolIPbus.hpp"
@@ -61,8 +61,8 @@
 #include "uhallibs/ipc/SharedMemObject.hpp"
 
 namespace uhal {
-  struct URI;
-  class Buffers;
+struct URI;
+class Buffers;
 }
 
 namespace uhallibs {
@@ -70,32 +70,31 @@ namespace uhallibs {
 namespace exception {
 //! Exception class to handle the case in which the Axi4Lite connection timed
 //! out.
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-  Axi4LiteTimeout, uhal::exception::ClientTimeout,
-  "Exception class to handle the case in "
-  "which the Axi4Lite connection timed out."
-  )
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(Axi4LiteTimeout,
+                                    uhal::exception::ClientTimeout,
+                                    "Exception class to handle the case in "
+                                    "which the Axi4Lite connection timed out.")
 //! Exception class to handle a failure to read from the specified device files
 //! during initialisation
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    Axi4LiteInitialisationError, uhal::exception::TransportLayerError,
-    "Exception class to handle a failure to read from the specified device "
-    "files during initialisation."
-    )
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(Axi4LiteInitialisationError,
+                                    uhal::exception::TransportLayerError,
+                                    "Exception class to handle a failure to read from the specified device "
+                                    "files during initialisation.")
 //! Exception class to handle a low-level seek/read/write error after
 //! initialisation
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    Axi4LiteCommunicationError, uhal::exception::TransportLayerError,
-    "Exception class to handle a low-level seek/read/write error after "
-    "initialisation."
-    )
-}  // namespace exception
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(Axi4LiteCommunicationError,
+                                    uhal::exception::TransportLayerError,
+                                    "Exception class to handle a low-level seek/read/write error after "
+                                    "initialisation.")
+} // namespace exception
 
 //! Transport protocol to transfer an IPbus buffer over Axi4Lite mapped in a 32b address space
-class Axi4Lite : public uhal::IPbus<2, 0> {
- public:
-  class MappedFile {
-   public:
+class Axi4Lite : public uhal::IPbus<2, 0>
+{
+public:
+  class MappedFile
+  {
+  public:
     MappedFile(const std::string& aPath, size_t aLength, int aProtFlags = PROT_WRITE);
     ~MappedFile();
 
@@ -113,16 +112,13 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
     //! Create a local buffer
     void createBuffer(const size_t aNrBytes);
 
-    void read(const uint32_t aAddr, const uint32_t aNrWords,
-              std::vector<uint32_t>& aValues);
+    void read(const uint32_t aAddr, const uint32_t aNrWords, std::vector<uint32_t>& aValues);
 
     void write(const uint32_t aAddr, const std::vector<uint32_t>& aValues);
 
-    void write(const uint32_t aAddr, const uint8_t* const aPtr,
-               const size_t aNrBytes);
+    void write(const uint32_t aAddr, const uint8_t* const aPtr, const size_t aNrBytes);
 
-    void write(const uint32_t aAddr,
-               const std::vector<std::pair<const uint8_t*, size_t> >& aData);
+    void write(const uint32_t aAddr, const std::vector<std::pair<const uint8_t*, size_t>>& aData);
 
     bool haveLock() const;
 
@@ -130,8 +126,7 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
 
     void unlock();
 
-   private:
-
+  private:
     std::string mPath;
     int mFd;
     uint32_t* mBar;
@@ -149,39 +144,37 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
   */
   Axi4Lite(const std::string& aId, const uhal::URI& aUri);
 
-  Axi4Lite ( const Axi4Lite& ) = delete;
-  Axi4Lite& operator= ( const Axi4Lite& ) = delete;
+  Axi4Lite(const Axi4Lite&) = delete;
+  Axi4Lite& operator=(const Axi4Lite&) = delete;
 
   //! Destructor
   virtual ~Axi4Lite();
 
-
-
-
-
- private:
+private:
   typedef ipc::RobustMutex IPCMutex_t;
   typedef std::unique_lock<IPCMutex_t> IPCScopedLock_t;
 
-  typedef IPbus< 2 , 0 > InnerProtocol;
+  typedef IPbus<2, 0> InnerProtocol;
   typedef std::chrono::steady_clock SteadyClock_t;
 
   /**
     Send the IPbus buffer to the target, read back the response and call the packing-protocol's validate function
     @param aBuffers the buffer object wrapping the send and recieve buffers that are to be transported
-    If multithreaded, adds buffer to the dispatch queue and returns. If single-threaded, calls the dispatch-worker dispatch function directly and blocks until the response is validated.
+    If multithreaded, adds buffer to the dispatch queue and returns. If single-threaded, calls the dispatch-worker
+    dispatch function directly and blocks until the response is validated.
   */
-  void implementDispatch ( std::shared_ptr< uhal::Buffers > aBuffers );
+  void implementDispatch(std::shared_ptr<uhal::Buffers> aBuffers);
 
-  //! Concrete implementation of the synchronization function to block until all buffers have been sent, all replies received and all data validated
-  virtual void Flush( );
+  //! Concrete implementation of the synchronization function to block until all buffers have been sent, all replies
+  //! received and all data validated
+  virtual void Flush();
 
   //! Function which tidies up this protocol layer in the event of an exception
   virtual void dispatchExceptionHandler();
 
   static std::string getDevicePath(const uhal::URI& aUri);
 
-  static std::string getSharedMemName(const std::string& );
+  static std::string getSharedMemName(const std::string&);
 
   /**
     Return the maximum size to be sent based on the buffer size in the target
@@ -198,12 +191,12 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
   void connect();
 
   //! Set up the connection to the device
-  void connect( IPCScopedLock_t& );
+  void connect(IPCScopedLock_t&);
 
   //! Close the connection to the device
   void disconnect();
 
-  //! Write request packet to next page in host-to-FPGA device file 
+  //! Write request packet to next page in host-to-FPGA device file
   void write(const std::shared_ptr<uhal::Buffers>& aBuffers);
 
   //! Read next pending reply packet from appropriate page of FPGA-to-host device file, and validate contents
@@ -219,12 +212,13 @@ class Axi4Lite : public uhal::IPbus<2, 0> {
 
   std::chrono::microseconds mSleepDuration;
 
-  uint32_t mNumberOfPages, mMaxInFlight, mPageSize, mMaxPacketSize, mIndexNextPage, mPublishedReplyPageCount, mReadReplyPageCount;
+  uint32_t mNumberOfPages, mMaxInFlight, mPageSize, mMaxPacketSize, mIndexNextPage, mPublishedReplyPageCount,
+    mReadReplyPageCount;
 
   //! The list of buffers still awaiting a reply
-  std::deque < std::shared_ptr< uhal::Buffers > > mReplyQueue;
+  std::deque<std::shared_ptr<uhal::Buffers>> mReplyQueue;
 };
 
-}  // namespace uhal
+} // namespace uhal
 
 #endif /* _DUNEDAQ_UHALLIBS_PROTOCOLAXI4LITE_HPP_ */
