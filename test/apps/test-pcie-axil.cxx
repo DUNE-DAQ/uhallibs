@@ -9,7 +9,7 @@
 #include <string.h>
 #include <iomanip>
 #include <vector>
-
+#include <cstdint>
 
 /* /sys/bus/pci/devices/0000:<bus>:<dev>.<func>/resource<bar#> */
 #define get_syspath_bar_mmap(s, bus,dev,func,bar) \
