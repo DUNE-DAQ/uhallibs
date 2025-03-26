@@ -430,6 +430,7 @@ void Flx::connect(IPCScopedLock_t& aGuard)
 
 void Flx::disconnect()
 {
+  log ( uhal::Debug() , "flx client is closing device file " , uhal::Quote ( mDeviceFile.getPath() ) );
   mDeviceFile.close();
   mConnected = false;
 }
