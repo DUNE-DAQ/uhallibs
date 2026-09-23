@@ -12,13 +12,14 @@ namespace ipc {
 
 namespace exception {
 //! Exception class to handle errors from pthread mutex-related functions
-UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(
-    MutexError, uhal::exception::TransportLayerError,
-    "Exception class to handle errors from pthread mutex-related functions.")
-}  // namespace exception
+UHAL_DEFINE_DERIVED_EXCEPTION_CLASS(MutexError,
+                                    uhal::exception::TransportLayerError,
+                                    "Exception class to handle errors from pthread mutex-related functions.")
+} // namespace exception
 
-class RobustMutex {
- public:
+class RobustMutex
+{
+public:
   RobustMutex();
   ~RobustMutex();
 
@@ -34,7 +35,7 @@ class RobustMutex {
 
   void endSession();
 
- private:
+private:
   RobustMutex(const RobustMutex&);
 
   pthread_mutex_t mMutex;
@@ -42,7 +43,7 @@ class RobustMutex {
   bool mSessionActive;
 };
 
-}  // namespace ipc
-}  // namespace uhal
+} // namespace ipc
+} // namespace uhal
 
 #endif /* _uhal_ipc_RobustMutex_hpp_ */
